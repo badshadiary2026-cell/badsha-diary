@@ -5,7 +5,7 @@
   "name": "Badsha Diary",
   "orientation": "any",
   "scope": "/",
-  "short_name": "Badsha Diary",
+  "short_name": "Badsha",
   "start_url": "/",
   "theme_color": "#ffffff",
   "description": "Script Editor App"
