@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Badsha Diary - Script Editor</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #2c3e50; }
+        label { font-weight: bold; display: block; margin-top: 15px; }
+        input[type="password"], textarea { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        textarea { height: 200px; resize: vertical; }
+        button { background-color: #4CAF50; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; margin-top: 15px; }
+        button:hover { background-color: #45a049; }
+        #loading { text-align: center; color: #e67e22; font-weight: bold; margin-top: 10px; display: none; }
+        #output { margin-top: 20px; background: #eef2f3; padding: 15px; border-radius: 6px; white-space: pre-wrap; border-left: 5px solid #4CAF50; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Badsha Diary - Script Editor</h2>
+    <label for="apiKey">আপনার Gemini API Key দিন:</label>
+    <input type="password" id="apiKey" placeholder="এখানে আপনার এপিআই কি পেস্ট করুন">
+    <label for="scriptInput">আপনার গল্প বা স্ক্রিপ্ট এখানে পেস্ট করুন:</label>
+    <textarea id="scriptInput" placeholder="গল্প বা নাটকের টেক্সট এখানে দিন..."></textarea>
+    <button onclick="processScript()">স্ক্রিপ্ট এডিট ও মডিফাই করুন</button>
+    <div id="loading">⏳ স্ক্রিপ্ট প্রসেস করা হচ্ছে, দয়া করে অপেক্ষা করুন...</div>
+    <label for="outputResult">এডিটেড আউটপুট:</label>
+    <div id="output">আউটপুট এখানে দেখাবে...</div>
+</div>
+<script>
+    async function processScript() {
+        const apiKey = document.getElementById('apiKey').value.trim();
+        const scriptText = document.getElementById('scriptInput').value.trim();
+        const outputDiv = document.getElementById('output');
+        const loadingDiv = document.getElementById('loading');
+        if (!apiKey) { alert('দয়া করে আপনার Gemini API Key দিন!'); return; }
+        if (!scriptText) { alert('দয়া করে এডিট করার জন্য কিছু লেখা দিন!'); return; }
+        loadingDiv.style.display = 'block';
+        outputDiv.innerText = '';
+        const systemPrompt = "আপনি একজন পেশাদার স্ক্রিপ্ট এডিটর। ব্যবহারকারী আপনাকে যে বাংলা গল্প বা স্ক্রিপ্ট পাঠাবেন, সেটিকে তাদের নির্দেশনা অনুযায়ী নিখুঁতভাবে মডিফাই বা রিরাইট করতে হবে। গল্পের মূল ফরম্যাট অবিকল রাখতে হবে।";
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
+        const data = { contents: [{ parts: [{ text: systemPrompt + "\n\nনিচের গল্পটি মডিফাই কর:\n" + scriptText }] }] };
+        try {
+            const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            const result = await response.json();
+            loadingDiv.style.display = 'none';
+            if (result.candidates && result.candidates[0].content) {
+                outputDiv.innerText = result.candidates[0].content.parts[0].text;
+            } else {
+                outputDiv.innerText = 'দুঃখিত, কোনো সমস্যা হয়েছে: ' + JSON.stringify(result);
+            }
+        } catch (error) {
+            loadingDiv.style.display = 'none';
+            outputDiv.innerText = 'নেটওয়ার্ক বা এপিআই ত্রুটি: ' + error;
+        }
+    }
+</script>
+</body>
+</html>
