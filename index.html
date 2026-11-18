@@ -1,62 +1,198 @@
 <!DOCTYPE html>
 <html lang="bn">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Badsha Diary - Script Editor</title>
-    <link rel="manifest" href="manifest.json">
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
-        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #2c3e50; }
-        label { font-weight: bold; display: block; margin-top: 15px; }
-        input[type="password"], textarea { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
-        textarea { height: 200px; resize: vertical; }
-        button { background-color: #4CAF50; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; margin-top: 15px; }
-        button:hover { background-color: #45a049; }
-        #loading { text-align: center; color: #e67e22; font-weight: bold; margin-top: 10px; display: none; }
-        #output { margin-top: 20px; background: #eef2f3; padding: 15px; border-radius: 6px; white-space: pre-wrap; border-left: 5px solid #4CAF50; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Badsha Diary</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e293b">
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { margin: 0; background: #0f172a; color: #f8fafc; display: flex; flex-direction: column; min-height: 100vh; }
+    header { background: #1e293b; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+    header h1 { margin: 0; font-size: 1.2rem; color: #38bdf8; letter-spacing: 0.5px; }
+    .key-btn { background: #334155; color: #e2e8f0; border: 1px solid #475569; padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; }
+    .container { padding: 16px; max-width: 800px; width: 100%; margin: 0 auto; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+    
+    /* API Setup Box */
+    #apiBox { background: #1e293b; padding: 14px; border-radius: 10px; border: 1px solid #38bdf8; display: none; flex-direction: column; gap: 10px; }
+    #apiBox.active { display: flex; }
+    .api-row { display: flex; gap: 8px; }
+    input[type="password"] { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #fff; font-size: 0.95rem; }
+    .save-btn { background: #0284c7; color: #fff; border: none; padding: 10px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    
+    /* Editor Area */
+    .editor-box { display: flex; flex-direction: column; gap: 6px; }
+    textarea { width: 100%; height: 240px; padding: 14px; border-radius: 10px; border: 1px solid #334155; background: #1e293b; color: #f8fafc; font-size: 1rem; line-height: 1.6; resize: vertical; }
+    textarea:focus { outline: none; border-color: #38bdf8; }
+    
+    .status-bar { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: #94a3b8; }
+    .warning-text { color: #f87171; font-weight: 600; display: none; }
+    
+    .action-btn { background: #2563eb; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .action-btn:hover { background: #1d4ed8; }
+    .action-btn:disabled { background: #475569; color: #94a3b8; cursor: not-allowed; }
+    
+    /* Output Area */
+    .output-section { display: none; flex-direction: column; gap: 8px; margin-top: 6px; }
+    .output-header { display: flex; justify-content: space-between; align-items: center; }
+    .copy-btn { background: #10b981; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+    #outputBox { background: #1e293b; padding: 14px; border-radius: 10px; border: 1px solid #334155; white-space: pre-wrap; line-height: 1.6; font-size: 0.98rem; max-height: 350px; overflow-y: auto; }
+  </style>
 </head>
 <body>
+
+<header>
+  <h1>Badsha Diary</h1>
+  <button class="key-btn" onclick="toggleApiBox()">🔑 API Key</button>
+</header>
+
 <div class="container">
-    <h2>Badsha Diary - Script Editor</h2>
-    <label for="apiKey">আপনার Gemini API Key দিন:</label>
-    <input type="password" id="apiKey" placeholder="এখানে আপনার এপিআই কি পেস্ট করুন">
-    <label for="scriptInput">আপনার গল্প বা স্ক্রিপ্ট এখানে পেস্ট করুন:</label>
-    <textarea id="scriptInput" placeholder="গল্প বা নাটকের টেক্সট এখানে দিন..."></textarea>
-    <button onclick="processScript()">স্ক্রিপ্ট এডিট ও মডিফাই করুন</button>
-    <div id="loading">⏳ স্ক্রিপ্ট প্রসেস করা হচ্ছে, দয়া করে অপেক্ষা করুন...</div>
-    <label for="outputResult">এডিটেড আউটপুট:</label>
-    <div id="output">আউটপুট এখানে দেখাবে...</div>
+  <!-- Permanent API Key Setup -->
+  <div id="apiBox">
+    <div style="font-size: 0.9rem; color: #cbd5e1;">আপনার Gemini API Key দিন (একবার সেভ করলে আর দিতে হবে না):</div>
+    <div class="api-row">
+      <input type="password" id="apiKeyInput" placeholder="AIzaSy...">
+      <button class="save-btn" onclick="saveApiKey()">Save Key</button>
+    </div>
+  </div>
+
+  <!-- Script Input -->
+  <div class="editor-box">
+    <textarea id="scriptInput" placeholder="আপনার গল্প বা স্ক্রিপ্ট এখানে পেস্ট করুন (সর্বোচ্চ ২০,০০০ শব্দ)..." oninput="checkWordLimit()"></textarea>
+    <div class="status-bar">
+      <span id="wordCount">শব্দ সংখ্যা: 0 / 20,000</span>
+      <span id="limitWarning" class="warning-text">⚠️ ২০,০০০ শব্দের সীমা অতিক্রম করেছে!</span>
+    </div>
+  </div>
+
+  <button id="processBtn" class="action-btn" onclick="processScript()">✨ স্ক্রিপ্ট এডিট ও পরিমার্জন করুন</button>
+
+  <!-- Output -->
+  <div id="outputSection" class="output-section">
+    <div class="output-header">
+      <span style="font-weight: 600; color: #38bdf8;">পরিমার্জিত স্ক্রিপ্ট:</span>
+      <button class="copy-btn" onclick="copyOutput()">📋 কপি করুন</button>
+    </div>
+    <div id="outputBox"></div>
+  </div>
 </div>
+
 <script>
-    async function processScript() {
-        const apiKey = document.getElementById('apiKey').value.trim();
-        const scriptText = document.getElementById('scriptInput').value.trim();
-        const outputDiv = document.getElementById('output');
-        const loadingDiv = document.getElementById('loading');
-        if (!apiKey) { alert('দয়া করে আপনার Gemini API Key দিন!'); return; }
-        if (!scriptText) { alert('দয়া করে এডিট করার জন্য কিছু লেখা দিন!'); return; }
-        loadingDiv.style.display = 'block';
-        outputDiv.innerText = '';
-        const systemPrompt = "আপনি একজন পেশাদার স্ক্রিপ্ট এডিটর। ব্যবহারকারী আপনাকে যে বাংলা গল্প বা স্ক্রিপ্ট পাঠাবেন, সেটিকে তাদের নির্দেশনা অনুযায়ী নিখুঁতভাবে মডিফাই বা রিরাইট করতে হবে। গল্পের মূল ফরম্যাট অবিকল রাখতে হবে।";
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
-        const data = { contents: [{ parts: [{ text: systemPrompt + "\n\nনিচের গল্পটি মডিফাই কর:\n" + scriptText }] }] };
-        try {
-            const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            const result = await response.json();
-            loadingDiv.style.display = 'none';
-            if (result.candidates && result.candidates[0].content) {
-                outputDiv.innerText = result.candidates[0].content.parts[0].text;
-            } else {
-                outputDiv.innerText = 'দুঃখিত, কোনো সমস্যা হয়েছে: ' + JSON.stringify(result);
-            }
-        } catch (error) {
-            loadingDiv.style.display = 'none';
-            outputDiv.innerText = 'নেটওয়ার্ক বা এপিআই ত্রুটি: ' + error;
-        }
+  // ==========================================
+  // ভবিষ্যতে মডেল আপডেট করতে শুধু নিচের লাইনটি বদলাবেন
+  const MODEL_NAME = "gemini-2.5-flash"; 
+  const MAX_WORDS = 20000;
+  // ==========================================
+
+  const apiBox = document.getElementById('apiBox');
+  const apiKeyInput = document.getElementById('apiKeyInput');
+  const scriptInput = document.getElementById('scriptInput');
+  const wordCountEl = document.getElementById('wordCount');
+  const limitWarningEl = document.getElementById('limitWarning');
+  const processBtn = document.getElementById('processBtn');
+  const outputSection = document.getElementById('outputSection');
+  const outputBox = document.getElementById('outputBox');
+
+  // অ্যাপ লোড হলে সেভ করা API Key চেক করবে
+  window.onload = () => {
+    const savedKey = localStorage.getItem('badsha_gemini_key');
+    if (!savedKey) {
+      apiBox.classList.add('active');
+    } else {
+      apiKeyInput.value = savedKey;
     }
+  };
+
+  function toggleApiBox() {
+    apiBox.classList.toggle('active');
+  }
+
+  function saveApiKey() {
+    const key = apiKeyInput.value.trim();
+    if (!key) {
+      alert("দয়া করে একটি সঠিক API Key দিন।");
+      return;
+    }
+    localStorage.setItem('badsha_gemini_key', key);
+    apiBox.classList.remove('active');
+    alert("API Key স্থায়ীভাবে সেভ হয়েছে!");
+  }
+
+  function checkWordLimit() {
+    const text = scriptInput.value.trim();
+    const words = text ? text.split(/\s+/).length : 0;
+    wordCountEl.textContent = `শব্দ সংখ্যা: ${words.toLocaleString()} / 20,000`;
+
+    if (words > MAX_WORDS) {
+      wordCountEl.style.color = "#f87171";
+      limitWarningEl.style.display = "inline";
+      processBtn.disabled = true;
+    } else {
+      wordCountEl.style.color = "#94a3b8";
+      limitWarningEl.style.display = "none";
+      processBtn.disabled = false;
+    }
+  }
+
+  async function processScript() {
+    const apiKey = localStorage.getItem('badsha_gemini_key');
+    if (!apiKey) {
+      apiBox.classList.add('active');
+      alert("প্রথমে আপনার Gemini API Key সেভ করুন।");
+      return;
+    }
+
+    const scriptText = scriptInput.value.trim();
+    if (!scriptText) {
+      alert("এডিট করার জন্য কিছু লিখুন বা পেস্ট করুন।");
+      return;
+    }
+
+    const words = scriptText.split(/\s+/).length;
+    if (words > MAX_WORDS) {
+      alert("গল্পটি ২০,০০০ শব্দের বেশি হওয়ায় প্রসেস করা সম্ভব নয়।");
+      return;
+    }
+
+    processBtn.disabled = true;
+    processBtn.textContent = "⏳ প্রসেস হচ্ছে, অপেক্ষা করুন...";
+    outputSection.style.display = "flex";
+    outputBox.textContent = "আপনার স্ক্রিপ্টটি এডিট করা হচ্ছে...";
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `নিচের বাংলা গল্প বা অডিও নাটকের স্ক্রিপ্টটি বানান, বিরামচিহ্ন এবং বাক্যের গঠন ঠিক করে আরও সাবলীল ও শ্রুতিমধুর করে দাও। মূল কাহিনী ও সংলাপের ভাব যেন অটুট থাকে:\n\n${scriptText}`
+            }]
+          }]
+        })
+      });
+
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error.message);
+      }
+
+      const resultText = data.candidates[0].content.parts[0].text;
+      outputBox.textContent = resultText;
+    } catch (error) {
+      outputBox.textContent = "❌ ত্রুটি হয়েছে: " + error.message;
+    } finally {
+      processBtn.disabled = false;
+      processBtn.textContent = "✨ স্ক্রিপ্ট এডিট ও পরিমার্জন করুন";
+    }
+  }
+
+  function copyOutput() {
+    navigator.clipboard.writeText(outputBox.textContent);
+    alert("স্ক্রিপ্ট কপি হয়েছে!");
+  }
 </script>
+
 </body>
 </html>
