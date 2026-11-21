@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Badsha Diary — Offline Script Studio</title>
+  <title>Badsha Diary — Hybrid AI & Offline Script Studio</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1e1e1e" />
   <style>
@@ -16,7 +16,7 @@
       --text-muted: #9e9e9e;
       --accent-green: #22c55e;
       --accent-green-dark: #16a34a;
-      --accent-blue: #3b82f6;
+      --accent-blue: #2563eb;
       --accent-purple: #7c3aed;
       --danger: #ef4444;
       --warning: #f59e0b;
@@ -56,14 +56,14 @@
       letter-spacing: 0.3px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
-    .offline-badge {
+    .hybrid-badge {
       font-size: 11px;
-      background: rgba(34, 197, 94, 0.15);
-      color: var(--accent-green);
-      border: 1px solid rgba(34, 197, 94, 0.4);
+      background: rgba(59, 130, 246, 0.16);
+      color: #93c5fd;
+      border: 1px solid rgba(59, 130, 246, 0.4);
       padding: 2px 7px;
       border-radius: 12px;
       font-weight: 500;
@@ -72,14 +72,14 @@
     .top-actions {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 10px;
     }
 
     .icon-btn {
       background: none;
       border: none;
       color: var(--text-main);
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
       padding: 6px 8px;
@@ -133,7 +133,6 @@
       padding: 13px 14px;
       cursor: pointer;
       transition: background 0.15s;
-      position: relative;
     }
 
     .note-card:active {
@@ -176,14 +175,11 @@
       line-height: 1.6;
     }
 
-    /* --- FAB BUTTONS --- */
+    /* --- FAB BUTTON --- */
     .fab-group {
       position: fixed;
       right: 18px;
       bottom: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
       z-index: 20;
     }
 
@@ -202,11 +198,7 @@
       justify-content: center;
     }
 
-    .fab:active {
-      transform: scale(0.95);
-    }
-
-    /* --- EDITOR VIEW (NOTEPAD GREEN HEADER STYLE) --- */
+    /* --- EDITOR VIEW --- */
     .editor-view {
       display: none;
       flex-direction: column;
@@ -258,11 +250,6 @@
       text-overflow: ellipsis;
     }
 
-    .note-title-input::placeholder {
-      color: rgba(5, 46, 22, 0.6);
-    }
-
-    /* --- LIVE CHARACTERS & WORDS COUNTER BOX --- */
     .counter-box {
       background: rgba(0, 0, 0, 0.14);
       padding: 4px 10px;
@@ -321,7 +308,13 @@
       gap: 5px;
     }
 
-    .tool-btn.primary {
+    .tool-btn.ai-btn {
+      background: var(--accent-blue);
+      border-color: #60a5fa;
+      color: #ffffff;
+    }
+
+    .tool-btn.offline-btn {
       background: var(--accent-green-dark);
       border-color: var(--accent-green);
       color: #ffffff;
@@ -334,8 +327,8 @@
     }
 
     .tool-btn.copy {
-      background: #1d4ed8;
-      border-color: #3b82f6;
+      background: #0f766e;
+      border-color: #2dd4bf;
       color: #ffffff;
     }
 
@@ -345,8 +338,9 @@
       color: #fca5a5;
     }
 
-    .tool-btn:active {
-      opacity: 0.85;
+    .tool-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     /* --- MAIN TEXTAREA --- */
@@ -376,7 +370,7 @@
       align-items: center;
     }
 
-    /* --- MODAL FOR CHARACTER SETUP & FIND/REPLACE --- */
+    /* --- MODALS --- */
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -464,9 +458,10 @@
     <div class="top-bar">
       <div class="app-title">
         <span>Badsha Diary</span>
-        <span class="offline-badge">OFFLINE ENGINE</span>
+        <span class="hybrid-badge">HYBRID AI + OFFLINE</span>
       </div>
       <div class="top-actions">
+        <button class="icon-btn" onclick="openApiModal()" title="API Key">🔑 API</button>
         <button class="icon-btn" onclick="toggleSearch()" title="Search">🔍</button>
         <button class="icon-btn" onclick="toggleSort()" id="sortBtn">SORT ▾</button>
       </div>
@@ -491,7 +486,6 @@
         <input type="text" id="noteTitleInput" class="note-title-input" placeholder="Untitled Script 1" oninput="scheduleSave()" />
       </div>
 
-      <!-- Exact Notepad-style Characters & Words Counter -->
       <div class="counter-box">
         <div class="counter-item">
           <span class="counter-label">Characters</span>
@@ -504,16 +498,16 @@
       </div>
     </div>
 
-    <!-- Offline Script Formatting & Spellcheck Toolbar -->
+    <!-- Hybrid Online AI + Offline Host Toolbar -->
     <div class="script-toolbar">
-      <button class="tool-btn primary" onclick="formatStoryToScript()">✨ স্ক্রিপ্ট মডিফাই</button>
+      <button class="tool-btn ai-btn" id="aiModifyBtn" onclick="modifyWithAI()">🤖 AI স্ক্রিপ্ট মডিফাই</button>
+      <button class="tool-btn offline-btn" onclick="modifyOfflineFallback()">⚡ অফলাইন মডিফাই</button>
       <button class="tool-btn spell" onclick="fixCommonSpelling()">🔧 বানান ঠিক করুন</button>
       <button class="tool-btn" onclick="openCharModal()">👤 চরিত্র সেট</button>
-      <button class="tool-btn" onclick="insertTag('কথকঃ/ ')">+ কথকঃ/</button>
-      <button class="tool-btn" onclick="openReplaceModal()">🔄 খুঁজুন/বদলান</button>
+      <button class="tool-btn" onclick="openApiModal()">🔑 API</button>
       <button class="tool-btn" onclick="undoFormat()">↩️ পূর্বের লেখা</button>
-      <button class="tool-btn copy" onclick="copyScript()">📋 কপি করুন</button>
-      <button class="tool-btn" onclick="exportTxt()">⬇️ .txt সেভ</button>
+      <button class="tool-btn copy" onclick="copyScript()">📋 কপি</button>
+      <button class="tool-btn" onclick="exportTxt()">⬇️ .txt</button>
       <button class="tool-btn danger" onclick="deleteCurrentNote()">🗑️</button>
     </div>
 
@@ -525,8 +519,24 @@
     ></textarea>
 
     <div class="status-bar">
-      <span id="saveStatus">অফলাইন স্টোরেজ প্রস্তুত</span>
+      <span id="saveStatus">অফলাইন হোস্ট প্রস্তুত</span>
       <span id="limitIndicator">সীমা: 0 / 30,000 শব্দ</span>
+    </div>
+  </div>
+
+  <!-- ==================== API KEY MODAL ==================== -->
+  <div id="apiModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-title">Gemini API Key সেট করুন</div>
+      <div class="modal-desc">
+        অনলাইনে <b>AI স্ক্রিপ্ট মডিফাই</b> চালাতে আপনার API Key এখানে সেভ করুন। ইন্টারনেট না থাকলে বা API না দিলে অ্যাপ স্বয়ংক্রিয়ভাবে অফলাইন হোস্ট মোডে কাজ করবে।
+      </div>
+      <input type="password" id="apiKeyInput" class="modal-input" placeholder="AIza..." />
+      <input type="text" id="modelNameInput" class="modal-input" placeholder="মডেল (ডিফল্ট: gemini-2.5-flash)" />
+      <div class="modal-actions">
+        <button class="tool-btn" onclick="closeApiModal()">বন্ধ</button>
+        <button class="tool-btn ai-btn" onclick="saveApiSettings()">সেভ করুন</button>
+      </div>
     </div>
   </div>
 
@@ -535,26 +545,12 @@
     <div class="modal-card">
       <div class="modal-title">গল্পের চরিত্রের নাম সেট করুন</div>
       <div class="modal-desc">
-        কমা (,) দিয়ে চরিত্রগুলোর নাম লিখুন। অফলাইন ইঞ্জিন মূল গল্প না বদলে এই চরিত্রগুলোর সংলাপ ও <b>কথকঃ/</b> আলাদা ব্লকে সাজিয়ে দেবে।
+        কমা (,) দিয়ে চরিত্রগুলোর নাম লিখুন। AI ও অফলাইন ইঞ্জিন এই নামগুলো ধরে সংলাপ ও <b>কথকঃ/</b> আলাদা করবে।
       </div>
-      <input type="text" id="customCharsInput" class="modal-input" placeholder="যেমন: ইমরান, গালিব, নাবিলা, সাঈদ, রিনা, নিলা, নিলয়, মাসুম" />
+      <input type="text" id="customCharsInput" class="modal-input" placeholder="যেমন: স্বাধীন, সামিয়া, ইমরান, বস, গালিব, নাবিলা" />
       <div class="modal-actions">
-        <button class="tool-btn" onclick="closeCharModal()">বন্ধ করুন</button>
-        <button class="tool-btn primary" onclick="saveCustomChars()">সেভ ও অ্যাপ্লাই</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== FIND & REPLACE MODAL ==================== -->
-  <div id="replaceModal" class="modal-backdrop">
-    <div class="modal-card">
-      <div class="modal-title">শব্দ বা নাম পরিবর্তন (Find & Replace)</div>
-      <div class="modal-desc">যেকোনো ভুল নাম বা ট্যাগ এক ক্লিকে পুরো স্ক্রিপ্টে ঠিক করুন:</div>
-      <input type="text" id="findText" class="modal-input" placeholder="যে শব্দটি খুঁজবেন (যেমন: গালি)" />
-      <input type="text" id="replaceText" class="modal-input" placeholder="যা দিয়ে বদলাবেন (যেমন: গালিব)" />
-      <div class="modal-actions">
-        <button class="tool-btn" onclick="closeReplaceModal()">বাতিল</button>
-        <button class="tool-btn primary" onclick="runFindReplace()">সব পরিবর্তন করুন</button>
+        <button class="tool-btn" onclick="closeCharModal()">বন্ধ</button>
+        <button class="tool-btn offline-btn" onclick="saveCustomChars()">সেভ করুন</button>
       </div>
     </div>
   </div>
@@ -562,8 +558,7 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    // ==================== STORAGE & STATE ====================
-    const DB_NAME = 'BadshaDiaryOfflineDB';
+    const DB_NAME = 'BadshaDiaryHybridDB';
     const STORE_NAME = 'scripts';
     const MAX_WORDS = 30000;
 
@@ -573,37 +568,15 @@
     let sortNewestFirst = true;
     let saveTimer = null;
     let undoStack = [];
+    let isProcessingAI = false;
 
-    let defaultCharacters = [
-      'নিলা', 'নিলয়', 'নিলয়', 'মাসুম', 'আশরাফ', 'আশরাফুল', 'সিয়াম', 'অর্ক', 'মেহেদি',
-      'গালিব', 'নাবিলা', 'সাঈদ', 'সায়েদ', 'রিনা', 'বিলাল', 'ইমরান'
-    ];
-
-    // Safe Bangla spelling & typing cleanup dictionary (preserves story meaning)
-    const spellingFixes = [
-      ['কমপ্রিট', 'কমপ্লিট'],
-      ['আর্মিজন', 'আর্মি জন'],
-      ['খতম', 'খতম'],
-      ['খবর আসে', 'খবর আসে'],
-      ['স্ব জোরে', 'সজোরে'],
-      ['আকস্বিকতায়', 'আকস্মিকতায়'],
-      ['আত্বীয়েরা', 'আত্মীয়েরা'],
-      ['বিষন্ন', 'বিষণ্ণ'],
-      ['কন্ঠ', 'কণ্ঠ'],
-      ['কন্ঠস্বর', 'কণ্ঠস্বর'],
-      ['দুরে', 'দূরে'],
-      ['রোমাল', 'রুমাল'],
-      ['হাটু', 'হাঁটু'],
-      ['প্লীজ', 'প্লিজ'],
-      ['সত্যি আমি তোমার কোন ক্ষতি', 'সত্যি আমি তোমার কোনো ক্ষতি'],
-      ['কোন ক্ষতি', 'কোনো ক্ষতি'],
-      ['কোন সমস্যা', 'কোনো সমস্যা'],
-      ['কোন কথা', 'কোনো কথা'],
-      ['কোন প্রমাণ', 'কোনো প্রমাণ']
-    ];
-
-    // ==================== INDEXEDDB INITIALIZATION ====================
+    // ==================== INDEXEDDB + LOCALSTORAGE OFFLINE HOST ====================
     function initDB() {
+      const savedKey = localStorage.getItem('badsha_gemini_key') || '';
+      const savedModel = localStorage.getItem('badsha_gemini_model') || 'gemini-2.5-flash';
+      document.getElementById('apiKeyInput').value = savedKey;
+      document.getElementById('modelNameInput').value = savedModel;
+
       return new Promise((resolve) => {
         const req = indexedDB.open(DB_NAME, 1);
         req.onupgradeneeded = (e) => {
@@ -617,7 +590,7 @@
           loadAllNotes().then(resolve);
         };
         req.onerror = () => {
-          const raw = localStorage.getItem('badsha_notes_fallback');
+          const raw = localStorage.getItem('badsha_hybrid_notes_fallback');
           notes = raw ? JSON.parse(raw) : [];
           renderNotesList();
           resolve();
@@ -629,8 +602,7 @@
       return new Promise((resolve) => {
         if (!db) return resolve();
         const tx = db.transaction(STORE_NAME, 'readonly');
-        const store = tx.objectStore(STORE_NAME);
-        const req = store.getAll();
+        const req = tx.objectStore(STORE_NAME).getAll();
         req.onsuccess = () => {
           notes = req.result || [];
           renderNotesList();
@@ -645,7 +617,7 @@
         tx.objectStore(STORE_NAME).put(note);
       }
       try {
-        localStorage.setItem('badsha_notes_fallback', JSON.stringify(notes));
+        localStorage.setItem('badsha_hybrid_notes_fallback', JSON.stringify(notes));
       } catch (e) {}
     }
 
@@ -655,11 +627,16 @@
         tx.objectStore(STORE_NAME).delete(id);
       }
       try {
-        localStorage.setItem('badsha_notes_fallback', JSON.stringify(notes));
+        localStorage.setItem('badsha_hybrid_notes_fallback', JSON.stringify(notes));
       } catch (e) {}
     }
 
-    // ==================== DATE & COUNTER HELPERS ====================
+    // ==================== COUNTERS & LIST ====================
+    function countWords(text) {
+      const cleaned = (text || '').trim();
+      return cleaned ? cleaned.split(/\s+/).length : 0;
+    }
+
     function formatDateTime(ts) {
       const d = new Date(ts);
       const month = d.getMonth() + 1;
@@ -672,39 +649,26 @@
       return `${month}/${day}/${year}, ${hours}:${mins} ${ampm}`;
     }
 
-    function countWords(text) {
-      const cleaned = text.trim();
-      if (!cleaned) return 0;
-      return cleaned.split(/\s+/).length;
-    }
-
     function updateCounters() {
       const text = document.getElementById('scriptEditor').value;
       const chars = text.length;
       const words = countWords(text);
+      document.getElementById('charCount').textContent = chars;
+      document.getElementById('wordCount').textContent = words;
 
-      const charEl = document.getElementById('charCount');
-      const wordEl = document.getElementById('wordCount');
       const limitEl = document.getElementById('limitIndicator');
-
-      charEl.textContent = chars;
-      wordEl.textContent = words;
+      const wordEl = document.getElementById('wordCount');
       limitEl.textContent = `সীমা: ${words.toLocaleString()} / 30,000 শব্দ`;
 
       if (words > MAX_WORDS) {
         wordEl.classList.add('limit-warn');
         limitEl.style.color = '#ef4444';
-        limitEl.textContent = `⚠️ সীমা অতিক্রম: ${words.toLocaleString()} / 30,000 শব্দ`;
-      } else if (words > 25000) {
-        wordEl.classList.remove('limit-warn');
-        limitEl.style.color = '#f59e0b';
       } else {
         wordEl.classList.remove('limit-warn');
         limitEl.style.color = '#9e9e9e';
       }
     }
 
-    // ==================== HOME LIST RENDERING ====================
     function renderNotesList() {
       const listEl = document.getElementById('notesList');
       const query = document.getElementById('searchInput').value.trim().toLowerCase();
@@ -713,31 +677,22 @@
         (n.title || '').toLowerCase().includes(query) ||
         (n.content || '').toLowerCase().includes(query)
       );
-
       filtered.sort((a, b) => sortNewestFirst ? b.updatedAt - a.updatedAt : a.updatedAt - b.updatedAt);
 
       if (filtered.length === 0) {
-        listEl.innerHTML = `
-          <div class="empty-state">
-            কোনো স্ক্রিপ্ট পাওয়া যায়নি।<br/>
-            নিচের <b>+</b> বাটনে ক্লিক করে নতুন স্ক্রিপ্ট শুরু করুন।
-          </div>
-        `;
+        listEl.innerHTML = `<div class="empty-state">কোনো স্ক্রিপ্ট নেই।<br/>নিচের <b>+</b> বাটনে চাপ দিয়ে নতুন স্ক্রিপ্ট শুরু করুন।</div>`;
         return;
       }
 
       listEl.innerHTML = filtered.map(n => {
-        const wCount = countWords(n.content || '');
-        const cCount = (n.content || '').length;
-        const displayTitle = n.title && n.title.trim()
-          ? escapeHtml(n.title.trim())
-          : escapeHtml((n.content || 'Untitled Script').slice(0, 60));
-
+        const w = countWords(n.content || '');
+        const c = (n.content || '').length;
+        const title = (n.title && n.title.trim()) ? escapeHtml(n.title.trim()) : escapeHtml((n.content || 'Untitled Script').slice(0, 60));
         return `
           <div class="note-card" onclick="openNote('${n.id}')">
-            <div class="note-card-title">${displayTitle}</div>
+            <div class="note-card-title">${title}</div>
             <div class="note-card-meta">
-              <span class="note-card-stats">${wCount} words • ${cCount} chars</span>
+              <span class="note-card-stats">${w} words • ${c} chars</span>
               <span>Last edit: ${formatDateTime(n.updatedAt)}</span>
             </div>
           </div>
@@ -746,9 +701,7 @@
     }
 
     function escapeHtml(str) {
-      return str.replace(/[&<>"']/g, m => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      }[m]));
+      return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
     }
 
     function toggleSearch() {
@@ -768,19 +721,18 @@
       renderNotesList();
     }
 
-    // ==================== EDITOR NAVIGATION & SAVE ====================
+    // ==================== EDITOR ACTIONS ====================
     function createNewNote() {
       const id = 'note_' + Date.now();
-      const num = notes.length + 1;
-      const newNote = {
+      const note = {
         id,
-        title: `Untitled Script ${num}`,
+        title: `Untitled Script ${notes.length + 1}`,
         content: '',
         customChars: '',
         updatedAt: Date.now()
       };
-      notes.unshift(newNote);
-      persistNote(newNote);
+      notes.unshift(note);
+      persistNote(note);
       openNote(id);
     }
 
@@ -789,14 +741,10 @@
       if (!note) return;
       currentNoteId = id;
       undoStack = [];
-
       document.getElementById('noteTitleInput').value = note.title || '';
       document.getElementById('scriptEditor').value = note.content || '';
       document.getElementById('customCharsInput').value = note.customChars || '';
-
       updateCounters();
-      document.getElementById('saveStatus').textContent = 'অফলাইন সেভ সক্রিয়';
-
       document.getElementById('homeView').style.display = 'none';
       document.getElementById('editorView').classList.add('active');
     }
@@ -823,368 +771,237 @@
       if (!currentNoteId) return;
       const note = notes.find(n => n.id === currentNoteId);
       if (!note) return;
-
       note.title = document.getElementById('noteTitleInput').value;
       note.content = document.getElementById('scriptEditor').value;
       note.customChars = document.getElementById('customCharsInput').value;
       note.updatedAt = Date.now();
-
       persistNote(note);
-      document.getElementById('saveStatus').textContent = 'অফলাইনে সংরক্ষিত ✓';
+      document.getElementById('saveStatus').textContent = 'অফলাইন হোস্টে সংরক্ষিত ✓';
     }
 
     function deleteCurrentNote() {
-      if (!currentNoteId) return;
-      if (!confirm('এই স্ক্রিপ্টটি কি স্থায়ীভাবে মুছে ফেলতে চান?')) return;
+      if (!currentNoteId || !confirm('এই স্ক্রিপ্টটি মুছে ফেলতে চান?')) return;
       notes = notes.filter(n => n.id !== currentNoteId);
       removeNoteFromDB(currentNoteId);
       currentNoteId = null;
       document.getElementById('editorView').classList.remove('active');
       document.getElementById('homeView').style.display = 'flex';
       renderNotesList();
-      showToast('স্ক্রিপ্ট মুছে ফেলা হয়েছে');
+      showToast('মুছে ফেলা হয়েছে');
     }
 
-    // ==================== SPELLCHECK (BANAN FIXER) ====================
-    function fixCommonSpelling() {
+    // ==================== ONLINE AI BRAIN + OFFLINE FALLBACK ====================
+    async function modifyWithAI() {
+      if (isProcessingAI) return;
       const editor = document.getElementById('scriptEditor');
-      const current = editor.value;
-      if (!current.trim()) {
-        showToast('আগে লেখা লিখুন বা পেস্ট করুন');
+      const fullText = editor.value;
+      if (!fullText.trim()) {
+        showToast('আগে স্ক্রিপ্ট লিখুন');
         return;
       }
 
-      undoStack.push(current);
-      let updated = current;
-      let fixCount = 0;
+      const apiKey = (localStorage.getItem('badsha_gemini_key') || '').trim();
+      const model = (localStorage.getItem('badsha_gemini_model') || 'gemini-2.5-flash').trim();
+      const charList = (document.getElementById('customCharsInput').value || '').trim();
 
-      for (const [wrong, right] of spellingFixes) {
-        if (wrong !== right && updated.includes(wrong)) {
-          const parts = updated.split(wrong);
-          fixCount += parts.length - 1;
-          updated = parts.join(right);
-        }
+      if (!navigator.onLine || !apiKey) {
+        showToast('ইন্টারনেট বা API Key নেই — অফলাইন মডিফাই চলছে');
+        modifyOfflineFallback();
+        return;
       }
 
-      // Clean accidental double spaces inside lines while preserving line breaks
-      updated = updated.replace(/[^\S\r\n]{2,}/g, ' ');
+      isProcessingAI = true;
+      const aiBtn = document.getElementById('aiModifyBtn');
+      aiBtn.disabled = true;
+      aiBtn.textContent = '⏳ AI কাজ করছে...';
+      document.getElementById('saveStatus').textContent = 'অনলাইন AI ব্রেন দিয়ে প্রসেস হচ্ছে...';
 
-      editor.value = updated;
-      handleEditorInput();
-      showToast(fixCount > 0 ? `${fixCount}টি বানান ঠিক করা হয়েছে ✓` : 'সাধারণ বানান ঠিক আছে ✓');
+      undoStack.push(fullText);
+
+      try {
+        // Split large scripts into chunks (~1,800 words each) so large scripts never time out
+        const chunks = splitTextIntoChunks(fullText, 1800);
+        const processedChunks = [];
+
+        for (let idx = 0; idx < chunks.length; idx++) {
+          aiBtn.textContent = `⏳ AI (${idx + 1}/${chunks.length})`;
+          const resText = await callGeminiChunk(chunks[idx], apiKey, model, charList);
+          processedChunks.push(resText.trim());
+        }
+
+        editor.value = processedChunks.join('\n\n');
+        handleEditorInput();
+        document.getElementById('saveStatus').textContent = 'AI মডিফাই সম্পন্ন ও অফলাইনে সেভ ✓';
+        showToast('AI স্ক্রিপ্ট মডিফাই সম্পন্ন হয়েছে ✓');
+      } catch (err) {
+        // Restore original before fallback so offline engine starts cleanly
+        editor.value = undoStack.pop();
+        document.getElementById('saveStatus').textContent = 'AI ব্যর্থ — অফলাইন ফলব্যাক সক্রিয়';
+        showToast('AI সার্ভারে সমস্যা — অফলাইন মডিফাই চলছে');
+        modifyOfflineFallback();
+      } finally {
+        isProcessingAI = false;
+        aiBtn.disabled = false;
+        aiBtn.textContent = '🤖 AI স্ক্রিপ্ট মডিফাই';
+      }
     }
 
-    // ==================== IMPROVED CHARACTER & DIALOGUE DETECTOR ====================
-    function getActiveCharacters() {
-      const customRaw = document.getElementById('customCharsInput').value || '';
-      const customList = customRaw
-        .split(/[,،\n]+/)
-        .map(s => s.trim())
-        .filter(Boolean);
-      return Array.from(new Set([...customList, ...defaultCharacters]));
+    function splitTextIntoChunks(text, targetWords) {
+      const paragraphs = text.split(/\n+/);
+      const chunks = [];
+      let current = [];
+      let words = 0;
+
+      for (const p of paragraphs) {
+        const w = countWords(p);
+        if (words + w > targetWords && current.length > 0) {
+          chunks.push(current.join('\n\n'));
+          current = [p];
+          words = w;
+        } else {
+          current.push(p);
+          words += w;
+        }
+      }
+      if (current.length > 0) chunks.push(current.join('\n\n'));
+      return chunks;
     }
 
-    function stripExistingTag(line) {
-      return line.replace(/^[\u0980-\u09FFa-zA-Z0-9_\s]{1,25}\s*[ঃ:]\s*\/\s*/, '').trim();
+    async function callGeminiChunk(chunkText, apiKey, model, charList) {
+      const prompt = `তুমি একজন বাংলা অডিও স্ক্রিপ্ট ফরম্যাটার। নিচের গল্প/স্ক্রিপ্ট অংশটিকে ঠিক এই নিয়মে সাজাও:
+১. বর্ণনা/ন্যারেশনের শুরুতে "কথকঃ/ " দাও।
+২. চরিত্রের সংলাপের শুরুতে "চরিত্রের_নাম:/ " (বা চরিত্র অস্পষ্ট হলে "সংলাপ:/ ") দাও।
+৩. এক লাইনে একাধিক সংলাপ বা শেষে বর্ণনা থাকলে আলাদা ব্লকে ভাগ করো।
+৪. মূল গল্পের ঘটনা, ভাব ও সংলাপের অর্থ বদলাবে না; কেবল স্পষ্ট টাইপিং/বানান ভুল ঠিক করতে পারো।
+৫. কোনো অতিরিক্ত ভূমিকা বা ব্যাখ্যা লিখবে না—শুধু ফরম্যাট করা স্ক্রিপ্ট দেবে।
+${charList ? `চিহ্নিত চরিত্রসমূহ: ${charList}` : ''}
+
+টেক্সট:
+${chunkText}`;
+
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('API Error ' + response.status);
+      }
+      const data = await response.json();
+      const out = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!out) throw new Error('Empty AI response');
+      return out;
     }
 
-   function formatStoryToScript() {
+    function modifyOfflineFallback() {
       const editor = document.getElementById('scriptEditor');
       const rawText = editor.value;
-      if (!rawText.trim()) {
-        showToast('আগে গল্প বা স্ক্রিপ্ট লিখুন');
-        return;
-      }
-
+      if (!rawText.trim()) return;
       undoStack.push(rawText);
 
-      const chars = getActiveCharacters();
-      const outputBlocks = [];
+      const lines = rawText.split(/\n+/).map(l => l.trim()).filter(Boolean);
+      const blocks = [];
 
-      // Blocklist so common nouns/objects never become speaker labels like "পোশাক:/"
-      const nonCharacterWords = new Set([
-        'পোশাক', 'বয়স', 'সময়', 'রাত', 'দিন', 'সকাল', 'সন্ধ্যা', 'গাড়ি', 'বাড়ি',
-        'ঘর', 'দরজা', 'রাস্তা', 'বন্দর', 'সিলেট', 'চট্টগ্রাম', 'কথা', 'কাজ', 'মিশন'
-      ]);
-
-      const rawLines = rawText.split(/\n+/);
-
-      for (let rawLine of rawLines) {
-        let clean = stripExistingTag(rawLine.replace(/^সংলাপ:\s*\/\s*/i, '')).trim();
+      for (const line of lines) {
+        const clean = line.replace(/^[\u0980-\u09FFa-zA-Z0-9_\s]{1,25}\s*[ঃ:]\s*\/\s*/, '').trim();
         if (!clean) continue;
 
-        // Fix accidental split inside a sentence like "...বলে / প্রয়োগ..."
-        clean = clean.replace(/\s+\/\s+/g, ' ');
-
-        // If the line contains ">>", split into segments while keeping ">>" attached
         if (clean.includes('>>')) {
-          const tokens = clean.split(/(?=>>)/g).map(s => s.trim()).filter(Boolean);
-
-          for (let token of tokens) {
-            if (token.startsWith('>>')) {
-              let body = token.replace(/^>>\s*/, '').trim();
-
-              // Split trailing narration if a clear action/narration clause appears after dialogue
-              // Example: "...এখনই বলছি >> ঠিক আছে >> কথাটা বলে যে না স্বাধীন পিছনে ফিরতে যাবে..."
-              const narrationSplit = body.match(
-                /^(.*?)(?:\s+)(কথাটা বলে যে না\s+.+|কথাটা বলে\s+.+|তারপর\s+(?:স্বাধীন|ইমরান|সে|তারা|ওরা)\s+.+|এদিকে\s+.+|অন্যদিকে\s+.+)$/
-              );
-
-              if (narrationSplit && narrationSplit[1].trim().length > 2) {
-                outputBlocks.push(formatDialoguePiece(narrationSplit[1].trim(), chars, nonCharacterWords));
-                outputBlocks.push(`কথকঃ/ ${narrationSplit[2].trim()}`);
-              } else {
-                outputBlocks.push(formatDialoguePiece(body, chars, nonCharacterWords));
-              }
+          const parts = clean.split(/(?=>>)/g).map(s => s.trim()).filter(Boolean);
+          for (const p of parts) {
+            if (p.startsWith('>>')) {
+              blocks.push(`সংলাপ:/ ${p.replace(/^>>\s*/, '').trim()}`);
             } else {
-              // Text before the first ">>" is narration unless it starts with a known character dialogue tag
-              outputBlocks.push(`কথকঃ/ ${token}`);
+              blocks.push(`কথকঃ/ ${p}`);
             }
-          }
-          continue;
-        }
-
-        // Check if line starts explicitly with a known character name followed by ":" or "ঃ" or "/"
-        const knownChar = chars.find(c =>
-          !nonCharacterWords.has(c) && new RegExp(`^${escapeRegex(c)}\\s*[:ঃ/]`).test(clean)
-        );
-
-        if (knownChar) {
-          const body = clean.replace(new RegExp(`^${escapeRegex(knownChar)}\\s*[:ঃ/]*\\s*`), '').trim();
-          outputBlocks.push(`${knownChar}:/ ${body}`);
-          continue;
-        }
-
-        // Default for narrative paragraphs without ">>": keep as কথকঃ/
-        outputBlocks.push(`কথকঃ/ ${clean}`);
-      }
-
-      editor.value = outputBlocks.join('\n\n');
-      handleEditorInput();
-      showToast('কথক ও সংলাপ আরও সঠিকভাবে আলাদা হয়েছে ✓');
-    }
-
-    function formatDialoguePiece(text, chars, nonCharacterWords) {
-      // If a known character name appears at the start of the dialogue piece (e.g., "স্বাধীন: ...")
-      const matchedChar = chars.find(c =>
-        !nonCharacterWords.has(c) && new RegExp(`^${escapeRegex(c)}\\s*[:ঃ]`).test(text)
-      );
-      if (matchedChar) {
-        const cleaned = text.replace(new RegExp(`^${escapeRegex(matchedChar)}\\s*[:ঃ]\\s*`), '').trim();
-        return `${matchedChar}:/ ${cleaned || text}`;
-      }
-      return `সংলাপ:/ ${text}`;
-    }
-
-    function classifyDialogueOrNarration(text, chars, isExplicitDialogue) {
-      // Check if character name is written at start like "স্বাধীন: ..." or "ইমরান ..."
-      const matchedChar = chars.find(c => new RegExp(`^${escapeRegex(c)}(?:\\s*[:ঃ/\\-–]|\\s+বলে|\\s+বলল)`).test(text));
-      if (matchedChar) {
-        const cleaned = text.replace(new RegExp(`^${escapeRegex(matchedChar)}\\s*[:ঃ/\\-–]*\\s*`), '').trim();
-        return `${matchedChar}:/ ${cleaned || text}`;
-      }
-
-      // If text clearly looks like a pure action/narration sentence without speech style
-      const looksLikePureNarration =
-        /^(?:তারপর|এদিকে|অন্যদিকে|কথাটা বলে|সে\s|তারা\s|ওরা\s|স্বাধীন\s|ইমরান\s)/.test(text) &&
-        !/(?:তুই|আমি|আপনি|বস|স্যার|টাকা|ডিল|মিশন|বলছি|করব|করবো|যাব|যাবো|আসব|আসবো)/.test(text);
-
-      if (looksLikePureNarration && !isExplicitDialogue) {
-        return `কথকঃ/ ${text}`;
-      }
-
-      return `সংলাপ:/ ${text}`;
-    }
-      undoStack.push(rawText);
-
-      const chars = getActiveCharacters();
-      const paragraphs = rawText
-        .split(/\n+/)
-        .map(p => p.trim())
-        .filter(Boolean);
-
-      const outputBlocks = [];
-      const speechVerbs = '(?:বলল|বললো|বলে|বলেন|বললেন|জিজ্ঞেস করল|জিজ্ঞাসা করল|চিৎকার করে বলল|ফিসফিস করে বলল|হেসে বলল|উত্তর দিল|জবাব দিল|থোক দিল|বলতে থাকে|বলে উঠল|বলে উঠলো|কান্না করতে করতে বলে|হাসতে হাসতে বলে|ঝাড়ি দিয়ে বলল|বলে ওঠে|জানায়)';
-
-      for (let rawPara of paragraphs) {
-        // Strip old tag if re-formatting so we can re-classify accurately
-        const para = stripExistingTag(rawPara);
-        if (!para) continue;
-
-        // Case A: Explicit ">>" dialogue marker used in chat/script drafts
-        if (/^>>\s*/.test(para)) {
-          const dialoguePart = para.replace(/^>>\s*/, '').trim();
-          const matchedName = chars.find(c => new RegExp(`^${escapeRegex(c)}\\s*[:ঃ]`).test(dialoguePart));
-          if (matchedName) {
-            outputBlocks.push(`${matchedName}:/ ${dialoguePart.replace(new RegExp(`^${escapeRegex(matchedName)}\\s*[:ঃ]\\s*`), '')}`);
-          } else {
-            outputBlocks.push(`সংলাপ:/ ${dialoguePart}`);
-          }
-          continue;
-        }
-
-        // Case B: Starts directly with known character name + colon/dash/space dialogue cue
-        const directChar = chars.find(c => new RegExp(`^${escapeRegex(c)}\\s*(?:[:ঃ/\\-–]|\\s+বলে|\\s+বলল)`).test(para));
-        if (directChar && !new RegExp(`${escapeRegex(directChar)}[^।?!\\n]{0,35}${speechVerbs}[^।?!\\n]{15,}`).test(para)) {
-          const cleanDialogue = para.replace(new RegExp(`^${escapeRegex(directChar)}\\s*[:ঃ/\\-–]*\\s*`), '').trim();
-          outputBlocks.push(`${directChar}:/ ${cleanDialogue}`);
-          continue;
-        }
-
-        // Case C: Detect character names before speech verbs inside paragraph
-        const dynamicChars = new Set(chars);
-        const autoNameRegex = new RegExp(`([\\u0980-\\u09FF]{2,15})(?:\\s+[\\u0980-\\u09FF]{2,15}){0,3}\\s+${speechVerbs}`, 'g');
-        let m;
-        while ((m = autoNameRegex.exec(para)) !== null) {
-          const candidate = m[1].trim();
-          const stopWords = ['সে', 'তার', 'তারা', 'ওরা', 'লোকটা', 'মেয়েটা', 'ছেলেটা', 'কিন্তু', 'তখন', 'ঠিক', 'আর', 'এবার', 'হঠাৎ', 'ওর', 'তাদের', 'সবাই'];
-          if (!stopWords.includes(candidate)) {
-            dynamicChars.add(candidate);
-          }
-        }
-
-        const allNames = Array.from(dynamicChars)
-          .sort((a, b) => b.length - a.length)
-          .map(c => escapeRegex(c))
-          .join('|');
-
-        const splitRegex = new RegExp(
-          `((?:${allNames})(?:[^।?!\\n]{0,45}?)${speechVerbs}[।:\\.\\s…–-]*)`,
-          'g'
-        );
-
-        const parts = para.split(splitRegex).filter(s => s && s.trim());
-
-        if (parts.length <= 1) {
-          // Check if inside the paragraph there is inline ">>" dialogue
-          if (para.includes('>>')) {
-            const subParts = para.split(/>>/).map(s => s.trim()).filter(Boolean);
-            subParts.forEach((sp, idx) => {
-              if (idx === 0) {
-                outputBlocks.push(`কথকঃ/ ${sp}`);
-              } else {
-                outputBlocks.push(`সংলাপ:/ ${sp}`);
-              }
-            });
-          } else {
-            outputBlocks.push(`কথকঃ/ ${para}`);
           }
         } else {
-          let i = 0;
-          while (i < parts.length) {
-            const segment = parts[i].trim();
-            const matchedChar = Array.from(dynamicChars).find(c =>
-              segment.startsWith(c) && new RegExp(speechVerbs).test(segment)
-            );
-
-            if (matchedChar) {
-              outputBlocks.push(`কথকঃ/ ${segment}`);
-              if (i + 1 < parts.length) {
-                const nextSeg = parts[i + 1].trim();
-                const nextIsCue = Array.from(dynamicChars).some(c =>
-                  nextSeg.startsWith(c) && new RegExp(speechVerbs).test(nextSeg)
-                );
-                if (!nextIsCue) {
-                  outputBlocks.push(`${matchedChar}:/ ${nextSeg}`);
-                  i += 2;
-                  continue;
-                }
-              }
-              i += 1;
-            } else {
-              outputBlocks.push(`কথকঃ/ ${segment}`);
-              i += 1;
-            }
-          }
+          blocks.push(`কথকঃ/ ${clean}`);
         }
       }
 
-      editor.value = outputBlocks.join('\n\n');
+      editor.value = blocks.join('\n\n');
       handleEditorInput();
-      showToast('চরিত্র ও কথক আলাদা করে স্ক্রিপ্ট তৈরি হয়েছে ✓');
+      showToast('অফলাইন মডিফাই সম্পন্ন ✓');
     }
 
-    function escapeRegex(str) {
-      return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    function fixCommonSpelling() {
+      const editor = document.getElementById('scriptEditor');
+      const cur = editor.value;
+      if (!cur.trim()) return;
+      undoStack.push(cur);
+
+      const fixes = [
+        ['কমপ্রিট', 'কমপ্লিট'],
+        ['স্ব জোরে', 'সজোরে'],
+        ['আকস্বিকতায়', 'আকস্মিকতায়'],
+        ['আত্বীয়েরা', 'আত্মীয়েরা'],
+        ['বিষন্ন', 'বিষণ্ণ'],
+        ['কন্ঠ', 'কণ্ঠ'],
+        ['দুরে', 'দূরে'],
+        ['রোমাল', 'রুমাল'],
+        ['হাটু', 'হাঁটু'],
+        ['প্লীজ', 'প্লিজ'],
+        ['কোন ক্ষতি', 'কোনো ক্ষতি'],
+        ['কোন প্রমাণ', 'কোনো প্রমাণ']
+      ];
+
+      let updated = cur;
+      for (const [w, r] of fixes) {
+        updated = updated.split(w).join(r);
+      }
+      updated = updated.replace(/[^\S\r\n]{2,}/g, ' ');
+      editor.value = updated;
+      handleEditorInput();
+      showToast('বানান ও স্পেস ঠিক করা হয়েছে ✓');
     }
 
     function undoFormat() {
-      if (undoStack.length === 0) {
-        showToast('পূর্বের কোনো ভার্সন নেই');
+      if (!undoStack.length) {
+        showToast('পূর্বের লেখা নেই');
         return;
       }
-      const prev = undoStack.pop();
-      document.getElementById('scriptEditor').value = prev;
+      document.getElementById('scriptEditor').value = undoStack.pop();
       handleEditorInput();
-      showToast('পূর্বের লেখায় ফিরে যাওয়া হয়েছে');
+      showToast('পূর্বের লেখায় ফেরা হয়েছে');
     }
 
-    function insertTag(tag) {
-      const editor = document.getElementById('scriptEditor');
-      const start = editor.selectionStart;
-      const end = editor.selectionEnd;
-      const text = editor.value;
-      const prefix = start > 0 && text[start - 1] !== '\n' ? '\n\n' : '';
-      const insertion = prefix + tag;
-
-      editor.value = text.slice(0, start) + insertion + text.slice(end);
-      editor.selectionStart = editor.selectionEnd = start + insertion.length;
-      editor.focus();
-      handleEditorInput();
+    // ==================== MODALS & EXPORT ====================
+    function openApiModal() {
+      document.getElementById('apiModal').classList.add('active');
+    }
+    function closeApiModal() {
+      document.getElementById('apiModal').classList.remove('active');
+    }
+    function saveApiSettings() {
+      const key = document.getElementById('apiKeyInput').value.trim();
+      const model = (document.getElementById('modelNameInput').value.trim() || 'gemini-2.5-flash');
+      localStorage.setItem('badsha_gemini_key', key);
+      localStorage.setItem('badsha_gemini_model', model);
+      closeApiModal();
+      showToast('API সেটিংস সংরক্ষিত হয়েছে ✓');
     }
 
-    // ==================== MODALS & UTILITIES ====================
     function openCharModal() {
       document.getElementById('charModal').classList.add('active');
     }
-
     function closeCharModal() {
       document.getElementById('charModal').classList.remove('active');
     }
-
     function saveCustomChars() {
       saveCurrentNoteNow();
       closeCharModal();
       showToast('চরিত্রের তালিকা সেভ হয়েছে ✓');
     }
 
-    function openReplaceModal() {
-      document.getElementById('replaceModal').classList.add('active');
-    }
-
-    function closeReplaceModal() {
-      document.getElementById('replaceModal').classList.remove('active');
-    }
-
-    function runFindReplace() {
-      const findVal = document.getElementById('findText').value;
-      const replaceVal = document.getElementById('replaceText').value;
-      if (!findVal) {
-        showToast('খোঁজার জন্য শব্দ লিখুন');
-        return;
-      }
-      const editor = document.getElementById('scriptEditor');
-      undoStack.push(editor.value);
-      editor.value = editor.value.split(findVal).join(replaceVal);
-      handleEditorInput();
-      closeReplaceModal();
-      showToast('শব্দ পরিবর্তন সম্পন্ন হয়েছে ✓');
-    }
-
     function copyScript() {
       const text = document.getElementById('scriptEditor').value;
-      if (!text.trim()) {
-        showToast('কপি করার মতো কিছু নেই');
-        return;
-      }
-      navigator.clipboard.writeText(text).then(() => {
-        showToast('সম্পূর্ণ স্ক্রিপ্ট কপি হয়েছে ✓');
-      }).catch(() => {
-        const editor = document.getElementById('scriptEditor');
-        editor.select();
-        document.execCommand('copy');
-        showToast('সম্পূর্ণ স্ক্রিপ্ট কপি হয়েছে ✓');
-      });
+      if (!text.trim()) return;
+      navigator.clipboard.writeText(text).then(() => showToast('কপি হয়েছে ✓'));
     }
 
     function exportTxt() {
@@ -1197,7 +1014,7 @@
       a.download = `${title.replace(/[\\/:*?"<>|]/g, '_')}.txt`;
       a.click();
       URL.revokeObjectURL(url);
-      showToast('.txt ফাইল ডাউনলোড হচ্ছে');
+      showToast('.txt ফাইল সেভ হচ্ছে');
     }
 
     function showToast(msg) {
