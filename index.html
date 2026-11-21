@@ -901,61 +901,79 @@
       const chars = getActiveCharacters();
       const outputBlocks = [];
 
-      // Split into lines/paragraphs and also split inline ">>" dialogue markers
-      const rawLines = rawText.split(/\n+/);
-      const expandedSegments = [];
+      // Blocklist so common nouns/objects never become speaker labels like "পোশাক:/"
+      const nonCharacterWords = new Set([
+        'পোশাক', 'বয়স', 'সময়', 'রাত', 'দিন', 'সকাল', 'সন্ধ্যা', 'গাড়ি', 'বাড়ি',
+        'ঘর', 'দরজা', 'রাস্তা', 'বন্দর', 'সিলেট', 'চট্টগ্রাম', 'কথা', 'কাজ', 'মিশন'
+      ]);
 
-      for (let line of rawLines) {
-        let clean = stripExistingTag(line.replace(/^সংলাপ:\s*\/\s*/i, '')).trim();
+      const rawLines = rawText.split(/\n+/);
+
+      for (let rawLine of rawLines) {
+        let clean = stripExistingTag(rawLine.replace(/^সংলাপ:\s*\/\s*/i, '')).trim();
         if (!clean) continue;
 
-        // If line contains multiple ">>" markers, split before each ">>"
+        // Fix accidental split inside a sentence like "...বলে / প্রয়োগ..."
+        clean = clean.replace(/\s+\/\s+/g, ' ');
+
+        // If the line contains ">>", split into segments while keeping ">>" attached
         if (clean.includes('>>')) {
-          const pieces = clean.split(/(?=>>)/g).map(s => s.trim()).filter(Boolean);
-          for (let piece of pieces) {
-            expandedSegments.push(piece);
-          }
-        } else {
-          expandedSegments.push(clean);
-        }
-      }
+          const tokens = clean.split(/(?=>>)/g).map(s => s.trim()).filter(Boolean);
 
-      const narrationEndPattern = /(?:কথাটা বলে|বলে যে না|ফিরে তাকিয়ে|চলে আসে|বের হয়ে আসে|বসে পড়ে|হাঁটতে থাকে|চলে যায়|দাঁড়িয়ে থাকে|তাকিয়ে থাকে|হাসতে থাকে|কান্না করতে থাকে|সিগারেটের শেষ অব্দি ফেলে দিতে দিতে বলে|বলে উঠে|বলে ওঠে)/;
+          for (let token of tokens) {
+            if (token.startsWith('>>')) {
+              let body = token.replace(/^>>\s*/, '').trim();
 
-      for (let seg of expandedSegments) {
-        // Case 1: Segment starts with ">>"
-        if (seg.startsWith('>>')) {
-          let body = seg.replace(/^>>\s*/, '').trim();
+              // Split trailing narration if a clear action/narration clause appears after dialogue
+              // Example: "...এখনই বলছি >> ঠিক আছে >> কথাটা বলে যে না স্বাধীন পিছনে ফিরতে যাবে..."
+              const narrationSplit = body.match(
+                /^(.*?)(?:\s+)(কথাটা বলে যে না\s+.+|কথাটা বলে\s+.+|তারপর\s+(?:স্বাধীন|ইমরান|সে|তারা|ওরা)\s+.+|এদিকে\s+.+|অন্যদিকে\s+.+)$/
+              );
 
-          // Check if there is trailing narration after a dialogue sentence
-          // e.g. "...আমি এখনই বলছি >> ঠিক আছে >> কথাটা বলে যে না স্বাধীন..."
-          const trailingMatch = body.match(new RegExp(`(.*?)\\s+(${narrationEndPattern.source}.*)$`));
-          if (trailingMatch && trailingMatch[1].trim().length > 4 && trailingMatch[2].trim().length > 10) {
-            const firstPart = trailingMatch[1].trim();
-            const secondPart = trailingMatch[2].trim();
-            outputBlocks.push(classifyDialogueOrNarration(firstPart, chars, true));
-            outputBlocks.push(`কথকঃ/ ${secondPart}`);
-          } else {
-            outputBlocks.push(classifyDialogueOrNarration(body, chars, true));
+              if (narrationSplit && narrationSplit[1].trim().length > 2) {
+                outputBlocks.push(formatDialoguePiece(narrationSplit[1].trim(), chars, nonCharacterWords));
+                outputBlocks.push(`কথকঃ/ ${narrationSplit[2].trim()}`);
+              } else {
+                outputBlocks.push(formatDialoguePiece(body, chars, nonCharacterWords));
+              }
+            } else {
+              // Text before the first ">>" is narration unless it starts with a known character dialogue tag
+              outputBlocks.push(`কথকঃ/ ${token}`);
+            }
           }
           continue;
         }
 
-        // Case 2: Check if segment starts directly with a known character name + colon/dash
-        const directChar = chars.find(c => new RegExp(`^${escapeRegex(c)}\\s*[:ঃ/\\-–]`).test(seg));
-        if (directChar) {
-          const body = seg.replace(new RegExp(`^${escapeRegex(directChar)}\\s*[:ঃ/\\-–]*\\s*`), '').trim();
-          outputBlocks.push(`${directChar}:/ ${body}`);
+        // Check if line starts explicitly with a known character name followed by ":" or "ঃ" or "/"
+        const knownChar = chars.find(c =>
+          !nonCharacterWords.has(c) && new RegExp(`^${escapeRegex(c)}\\s*[:ঃ/]`).test(clean)
+        );
+
+        if (knownChar) {
+          const body = clean.replace(new RegExp(`^${escapeRegex(knownChar)}\\s*[:ঃ/]*\\s*`), '').trim();
+          outputBlocks.push(`${knownChar}:/ ${body}`);
           continue;
         }
 
-        // Case 3: Pure or mixed narration/dialogue without ">>"
-        outputBlocks.push(`কথকঃ/ ${seg}`);
+        // Default for narrative paragraphs without ">>": keep as কথকঃ/
+        outputBlocks.push(`কথকঃ/ ${clean}`);
       }
 
       editor.value = outputBlocks.join('\n\n');
       handleEditorInput();
-      showToast('স্ক্রিপ্ট আরও নিখুঁতভাবে আলাদা করা হয়েছে ✓');
+      showToast('কথক ও সংলাপ আরও সঠিকভাবে আলাদা হয়েছে ✓');
+    }
+
+    function formatDialoguePiece(text, chars, nonCharacterWords) {
+      // If a known character name appears at the start of the dialogue piece (e.g., "স্বাধীন: ...")
+      const matchedChar = chars.find(c =>
+        !nonCharacterWords.has(c) && new RegExp(`^${escapeRegex(c)}\\s*[:ঃ]`).test(text)
+      );
+      if (matchedChar) {
+        const cleaned = text.replace(new RegExp(`^${escapeRegex(matchedChar)}\\s*[:ঃ]\\s*`), '').trim();
+        return `${matchedChar}:/ ${cleaned || text}`;
+      }
+      return `সংলাপ:/ ${text}`;
     }
 
     function classifyDialogueOrNarration(text, chars, isExplicitDialogue) {
