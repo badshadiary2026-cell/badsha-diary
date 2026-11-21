@@ -17,6 +17,7 @@
       --accent-green: #22c55e;
       --accent-green-dark: #16a34a;
       --accent-blue: #3b82f6;
+      --accent-purple: #7c3aed;
       --danger: #ef4444;
       --warning: #f59e0b;
     }
@@ -326,6 +327,12 @@
       color: #ffffff;
     }
 
+    .tool-btn.spell {
+      background: var(--accent-purple);
+      border-color: #a78bfa;
+      color: #ffffff;
+    }
+
     .tool-btn.copy {
       background: #1d4ed8;
       border-color: #3b82f6;
@@ -497,9 +504,10 @@
       </div>
     </div>
 
-    <!-- Offline Script Formatting Toolbar -->
+    <!-- Offline Script Formatting & Spellcheck Toolbar -->
     <div class="script-toolbar">
-      <button class="tool-btn primary" onclick="formatStoryToScript()">✨ স্ক্রিপ্ট মডিফাই (কথক/সংলাপ)</button>
+      <button class="tool-btn primary" onclick="formatStoryToScript()">✨ স্ক্রিপ্ট মডিফাই</button>
+      <button class="tool-btn spell" onclick="fixCommonSpelling()">🔧 বানান ঠিক করুন</button>
       <button class="tool-btn" onclick="openCharModal()">👤 চরিত্র সেট</button>
       <button class="tool-btn" onclick="insertTag('কথকঃ/ ')">+ কথকঃ/</button>
       <button class="tool-btn" onclick="openReplaceModal()">🔄 খুঁজুন/বদলান</button>
@@ -527,9 +535,9 @@
     <div class="modal-card">
       <div class="modal-title">গল্পের চরিত্রের নাম সেট করুন</div>
       <div class="modal-desc">
-        কমা (,) দিয়ে চরিত্রগুলোর নাম লিখুন। অফলাইন ইঞ্জিন মূল গল্পের কোনো শব্দ না বদলে এই চরিত্রগুলোর সংলাপ ও <b>কথকঃ/</b> আলাদা ব্লকে সাজিয়ে দেবে।
+        কমা (,) দিয়ে চরিত্রগুলোর নাম লিখুন। অফলাইন ইঞ্জিন মূল গল্প না বদলে এই চরিত্রগুলোর সংলাপ ও <b>কথকঃ/</b> আলাদা ব্লকে সাজিয়ে দেবে।
       </div>
-      <input type="text" id="customCharsInput" class="modal-input" placeholder="যেমন: গালিব, নাবিলা, সাঈদ, রিনা, নিলা, নিলয়, মাসুম" />
+      <input type="text" id="customCharsInput" class="modal-input" placeholder="যেমন: ইমরান, গালিব, নাবিলা, সাঈদ, রিনা, নিলা, নিলয়, মাসুম" />
       <div class="modal-actions">
         <button class="tool-btn" onclick="closeCharModal()">বন্ধ করুন</button>
         <button class="tool-btn primary" onclick="saveCustomChars()">সেভ ও অ্যাপ্লাই</button>
@@ -566,10 +574,32 @@
     let saveTimer = null;
     let undoStack = [];
 
-    // Default characters from user's samples + auto-detection support
     let defaultCharacters = [
       'নিলা', 'নিলয়', 'নিলয়', 'মাসুম', 'আশরাফ', 'আশরাফুল', 'সিয়াম', 'অর্ক', 'মেহেদি',
-      'গালিব', 'নাবিলা', 'সাঈদ', 'সায়েদ', 'রিনা', 'বিলাল'
+      'গালিব', 'নাবিলা', 'সাঈদ', 'সায়েদ', 'রিনা', 'বিলাল', 'ইমরান'
+    ];
+
+    // Safe Bangla spelling & typing cleanup dictionary (preserves story meaning)
+    const spellingFixes = [
+      ['কমপ্রিট', 'কমপ্লিট'],
+      ['আর্মিজন', 'আর্মি জন'],
+      ['খতম', 'খতম'],
+      ['খবর আসে', 'খবর আসে'],
+      ['স্ব জোরে', 'সজোরে'],
+      ['আকস্বিকতায়', 'আকস্মিকতায়'],
+      ['আত্বীয়েরা', 'আত্মীয়েরা'],
+      ['বিষন্ন', 'বিষণ্ণ'],
+      ['কন্ঠ', 'কণ্ঠ'],
+      ['কন্ঠস্বর', 'কণ্ঠস্বর'],
+      ['দুরে', 'দূরে'],
+      ['রোমাল', 'রুমাল'],
+      ['হাটু', 'হাঁটু'],
+      ['প্লীজ', 'প্লিজ'],
+      ['সত্যি আমি তোমার কোন ক্ষতি', 'সত্যি আমি তোমার কোনো ক্ষতি'],
+      ['কোন ক্ষতি', 'কোনো ক্ষতি'],
+      ['কোন সমস্যা', 'কোনো সমস্যা'],
+      ['কোন কথা', 'কোনো কথা'],
+      ['কোন প্রমাণ', 'কোনো প্রমাণ']
     ];
 
     // ==================== INDEXEDDB INITIALIZATION ====================
@@ -587,7 +617,6 @@
           loadAllNotes().then(resolve);
         };
         req.onerror = () => {
-          // Fallback to localStorage if IndexedDB blocked
           const raw = localStorage.getItem('badsha_notes_fallback');
           notes = raw ? JSON.parse(raw) : [];
           renderNotesList();
@@ -816,7 +845,36 @@
       showToast('স্ক্রিপ্ট মুছে ফেলা হয়েছে');
     }
 
-    // ==================== STRONG NO-ALTER OFFLINE SCRIPT ENGINE ====================
+    // ==================== SPELLCHECK (BANAN FIXER) ====================
+    function fixCommonSpelling() {
+      const editor = document.getElementById('scriptEditor');
+      const current = editor.value;
+      if (!current.trim()) {
+        showToast('আগে লেখা লিখুন বা পেস্ট করুন');
+        return;
+      }
+
+      undoStack.push(current);
+      let updated = current;
+      let fixCount = 0;
+
+      for (const [wrong, right] of spellingFixes) {
+        if (wrong !== right && updated.includes(wrong)) {
+          const parts = updated.split(wrong);
+          fixCount += parts.length - 1;
+          updated = parts.join(right);
+        }
+      }
+
+      // Clean accidental double spaces inside lines while preserving line breaks
+      updated = updated.replace(/[^\S\r\n]{2,}/g, ' ');
+
+      editor.value = updated;
+      handleEditorInput();
+      showToast(fixCount > 0 ? `${fixCount}টি বানান ঠিক করা হয়েছে ✓` : 'সাধারণ বানান ঠিক আছে ✓');
+    }
+
+    // ==================== IMPROVED CHARACTER & DIALOGUE DETECTOR ====================
     function getActiveCharacters() {
       const customRaw = document.getElementById('customCharsInput').value || '';
       const customList = customRaw
@@ -826,12 +884,10 @@
       return Array.from(new Set([...customList, ...defaultCharacters]));
     }
 
-    /**
-     * Converts raw narrative + dialogue text into user's exact sample pattern:
-     * কথকঃ/ ...
-     * চরিত্র:/ ...
-     * Strictly preserves original words and prose without altering content.
-     */
+    function stripExistingTag(line) {
+      return line.replace(/^[\u0980-\u09FFa-zA-Z0-9_\s]{1,25}\s*[ঃ:]\s*\/\s*/, '').trim();
+    }
+
     function formatStoryToScript() {
       const editor = document.getElementById('scriptEditor');
       const rawText = editor.value;
@@ -840,36 +896,49 @@
         return;
       }
 
-      // Save state for Undo
       undoStack.push(rawText);
 
       const chars = getActiveCharacters();
-      // Normalize existing speaker tags spacing lightly without altering prose
       const paragraphs = rawText
         .split(/\n+/)
         .map(p => p.trim())
         .filter(Boolean);
 
       const outputBlocks = [];
+      const speechVerbs = '(?:বলল|বললো|বলে|বলেন|বললেন|জিজ্ঞেস করল|জিজ্ঞাসা করল|চিৎকার করে বলল|ফিসফিস করে বলল|হেসে বলল|উত্তর দিল|জবাব দিল|থোক দিল|বলতে থাকে|বলে উঠল|বলে উঠলো|কান্না করতে করতে বলে|হাসতে হাসতে বলে|ঝাড়ি দিয়ে বলল|বলে ওঠে|জানায়)';
 
-      // Speech verb patterns in Bangla stories (e.g., "নাবিলা মৃদুস্বরে বলল", "সাঈদ হেসে বলল", "নিলয় বলে...")
-      const speechVerbs = '(?:বলল|বললো|বলে|বলেন|বললেন|জিজ্ঞেস করল|জিজ্ঞাসা করল|চিৎকার করে বলল|ফিসফিস করে বলল|হেসে বলল|উত্তর দিল|জবাব দিল|থোক দিল|বলতে থাকে|বলে উঠল|বলে উঠলো|কান্না করতে করতে বলে|হাসতে হাসতে বলে|ঝাড়ি দিয়ে বলল)';
-      const charGroup = chars.map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+      for (let rawPara of paragraphs) {
+        // Strip old tag if re-formatting so we can re-classify accurately
+        const para = stripExistingTag(rawPara);
+        if (!para) continue;
 
-      for (let para of paragraphs) {
-        // 1. If paragraph already has user's speaker tag pattern (e.g. কথকঃ/ or নিলা:/ or সাঈদ :/)
-        if (/^[\u0980-\u09FFa-zA-Z0-9_\s]{1,25}\s*[ঃ:]\s*\//.test(para)) {
-          outputBlocks.push(para);
+        // Case A: Explicit ">>" dialogue marker used in chat/script drafts
+        if (/^>>\s*/.test(para)) {
+          const dialoguePart = para.replace(/^>>\s*/, '').trim();
+          const matchedName = chars.find(c => new RegExp(`^${escapeRegex(c)}\\s*[:ঃ]`).test(dialoguePart));
+          if (matchedName) {
+            outputBlocks.push(`${matchedName}:/ ${dialoguePart.replace(new RegExp(`^${escapeRegex(matchedName)}\\s*[:ঃ]\\s*`), '')}`);
+          } else {
+            outputBlocks.push(`সংলাপ:/ ${dialoguePart}`);
+          }
           continue;
         }
 
-        // 2. Auto-detect character names appearing before speech verbs in this paragraph
+        // Case B: Starts directly with known character name + colon/dash/space dialogue cue
+        const directChar = chars.find(c => new RegExp(`^${escapeRegex(c)}\\s*(?:[:ঃ/\\-–]|\\s+বলে|\\s+বলল)`).test(para));
+        if (directChar && !new RegExp(`${escapeRegex(directChar)}[^।?!\\n]{0,35}${speechVerbs}[^।?!\\n]{15,}`).test(para)) {
+          const cleanDialogue = para.replace(new RegExp(`^${escapeRegex(directChar)}\\s*[:ঃ/\\-–]*\\s*`), '').trim();
+          outputBlocks.push(`${directChar}:/ ${cleanDialogue}`);
+          continue;
+        }
+
+        // Case C: Detect character names before speech verbs inside paragraph
         const dynamicChars = new Set(chars);
         const autoNameRegex = new RegExp(`([\\u0980-\\u09FF]{2,15})(?:\\s+[\\u0980-\\u09FF]{2,15}){0,3}\\s+${speechVerbs}`, 'g');
         let m;
         while ((m = autoNameRegex.exec(para)) !== null) {
           const candidate = m[1].trim();
-          const stopWords = ['সে', 'তার', 'তারা', 'ওরা', 'লোকটা', 'মেয়েটা', 'ছেলেটা', 'কিন্তু', 'তখন', 'ঠিক', 'আর', 'এবার', 'হঠাৎ'];
+          const stopWords = ['সে', 'তার', 'তারা', 'ওরা', 'লোকটা', 'মেয়েটা', 'ছেলেটা', 'কিন্তু', 'তখন', 'ঠিক', 'আর', 'এবার', 'হঠাৎ', 'ওর', 'তাদের', 'সবাই'];
           if (!stopWords.includes(candidate)) {
             dynamicChars.add(candidate);
           }
@@ -877,11 +946,9 @@
 
         const allNames = Array.from(dynamicChars)
           .sort((a, b) => b.length - a.length)
-          .map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+          .map(c => escapeRegex(c))
           .join('|');
 
-        // 3. Split inline narration + speech verb + dialogue inside a single paragraph
-        // Example: "...নাবিলা মৃদুস্বরে বলল ভাইয়া ভাবি তোমরা ওকে এভাবে কথা শুনাচ্ছ কেন"
         const splitRegex = new RegExp(
           `((?:${allNames})(?:[^।?!\\n]{0,45}?)${speechVerbs}[।:\\.\\s…–-]*)`,
           'g'
@@ -890,8 +957,19 @@
         const parts = para.split(splitRegex).filter(s => s && s.trim());
 
         if (parts.length <= 1) {
-          // Pure narration block
-          outputBlocks.push(`কথকঃ/ ${para}`);
+          // Check if inside the paragraph there is inline ">>" dialogue
+          if (para.includes('>>')) {
+            const subParts = para.split(/>>/).map(s => s.trim()).filter(Boolean);
+            subParts.forEach((sp, idx) => {
+              if (idx === 0) {
+                outputBlocks.push(`কথকঃ/ ${sp}`);
+              } else {
+                outputBlocks.push(`সংলাপ:/ ${sp}`);
+              }
+            });
+          } else {
+            outputBlocks.push(`কথকঃ/ ${para}`);
+          }
         } else {
           let i = 0;
           while (i < parts.length) {
@@ -901,9 +979,7 @@
             );
 
             if (matchedChar) {
-              // This segment is the narration cue ("নাবিলা মৃদুস্বরে বলল")
               outputBlocks.push(`কথকঃ/ ${segment}`);
-              // Next segment (if exists and isn't another cue) is the character's dialogue
               if (i + 1 < parts.length) {
                 const nextSeg = parts[i + 1].trim();
                 const nextIsCue = Array.from(dynamicChars).some(c =>
@@ -926,7 +1002,11 @@
 
       editor.value = outputBlocks.join('\n\n');
       handleEditorInput();
-      showToast('স্যাম্পল প্যাটার্ন অনুযায়ী স্ক্রিপ্ট তৈরি হয়েছে ✓');
+      showToast('চরিত্র ও কথক আলাদা করে স্ক্রিপ্ট তৈরি হয়েছে ✓');
+    }
+
+    function escapeRegex(str) {
+      return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
     function undoFormat() {
@@ -1029,7 +1109,6 @@
       t._timer = setTimeout(() => t.classList.remove('show'), 2200);
     }
 
-    // Initialize on load
     initDB();
   </script>
 </body>
