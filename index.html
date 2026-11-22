@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Badsha Diary — Hybrid AI & Offline Script Studio</title>
+  <title>Badsha Diary — Multi-AI & Offline Script Studio</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1e1e1e" />
   <style>
@@ -39,7 +39,7 @@
       overflow: hidden;
     }
 
-    /* --- TOP HEADER (HOME VIEW) --- */
+    /* --- TOP HEADER --- */
     .top-bar {
       background-color: #212121;
       padding: 12px 16px;
@@ -53,7 +53,6 @@
     .app-title {
       font-size: 20px;
       font-weight: 600;
-      letter-spacing: 0.3px;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -116,7 +115,7 @@
       outline: none;
     }
 
-    /* --- NOTE LIST VIEW --- */
+    /* --- NOTE LIST --- */
     .list-container {
       flex: 1;
       overflow-y: auto;
@@ -132,7 +131,6 @@
       border-radius: 8px;
       padding: 13px 14px;
       cursor: pointer;
-      transition: background 0.15s;
     }
 
     .note-card:active {
@@ -175,7 +173,7 @@
       line-height: 1.6;
     }
 
-    /* --- FAB BUTTON --- */
+    /* --- FAB --- */
     .fab-group {
       position: fixed;
       right: 18px;
@@ -282,7 +280,7 @@
       color: #991b1b;
     }
 
-    /* --- ACTION TOOLBAR --- */
+    /* --- TOOLBAR --- */
     .script-toolbar {
       background: #161616;
       border-bottom: 1px solid #2c2c2c;
@@ -343,7 +341,7 @@
       cursor: not-allowed;
     }
 
-    /* --- MAIN TEXTAREA --- */
+    /* --- TEXTAREA --- */
     .editor-textarea {
       flex: 1;
       width: 100%;
@@ -358,7 +356,7 @@
       font-family: inherit;
     }
 
-    /* --- STATUS FOOTER --- */
+    /* --- STATUS BAR --- */
     .status-bar {
       background: #141414;
       border-top: 1px solid #262626;
@@ -395,7 +393,7 @@
       padding: 18px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 11px;
     }
 
     .modal-title {
@@ -410,7 +408,14 @@
       line-height: 1.45;
     }
 
-    .modal-input {
+    .field-label {
+      font-size: 12px;
+      color: #cbd5e1;
+      font-weight: 600;
+      margin-bottom: -6px;
+    }
+
+    .modal-input, .modal-select {
       width: 100%;
       background: #121212;
       border: 1px solid #3f3f46;
@@ -458,10 +463,10 @@
     <div class="top-bar">
       <div class="app-title">
         <span>Badsha Diary</span>
-        <span class="hybrid-badge">HYBRID AI + OFFLINE</span>
+        <span class="hybrid-badge">MULTI-AI + OFFLINE</span>
       </div>
       <div class="top-actions">
-        <button class="icon-btn" onclick="openApiModal()" title="API Key">🔑 API</button>
+        <button class="icon-btn" onclick="openApiModal()" title="API Settings">🔑 API</button>
         <button class="icon-btn" onclick="toggleSearch()" title="Search">🔍</button>
         <button class="icon-btn" onclick="toggleSort()" id="sortBtn">SORT ▾</button>
       </div>
@@ -498,13 +503,13 @@
       </div>
     </div>
 
-    <!-- Hybrid Online AI + Offline Host Toolbar -->
+    <!-- Toolbar -->
     <div class="script-toolbar">
       <button class="tool-btn ai-btn" id="aiModifyBtn" onclick="modifyWithAI()">🤖 AI স্ক্রিপ্ট মডিফাই</button>
       <button class="tool-btn offline-btn" onclick="modifyOfflineFallback()">⚡ অফলাইন মডিফাই</button>
       <button class="tool-btn spell" onclick="fixCommonSpelling()">🔧 বানান ঠিক করুন</button>
       <button class="tool-btn" onclick="openCharModal()">👤 চরিত্র সেট</button>
-      <button class="tool-btn" onclick="openApiModal()">🔑 API</button>
+      <button class="tool-btn" onclick="openApiModal()">🔑 API & মডেল</button>
       <button class="tool-btn" onclick="undoFormat()">↩️ পূর্বের লেখা</button>
       <button class="tool-btn copy" onclick="copyScript()">📋 কপি</button>
       <button class="tool-btn" onclick="exportTxt()">⬇️ .txt</button>
@@ -524,15 +529,29 @@
     </div>
   </div>
 
-  <!-- ==================== API KEY MODAL ==================== -->
+  <!-- ==================== MULTI-PROVIDER API & MODEL MODAL ==================== -->
   <div id="apiModal" class="modal-backdrop">
     <div class="modal-card">
-      <div class="modal-title">Gemini API Key সেট করুন</div>
+      <div class="modal-title">AI প্রোভাইডার, মডেল ও API Key</div>
       <div class="modal-desc">
-        অনলাইনে <b>AI স্ক্রিপ্ট মডিফাই</b> চালাতে আপনার API Key এখানে সেভ করুন। ইন্টারনেট না থাকলে বা API না দিলে অ্যাপ স্বয়ংক্রিয়ভাবে অফলাইন হোস্ট মোডে কাজ করবে।
+        যেকোনো একটি AI সার্ভিস বেছে নিয়ে আপনার নিজের API Key সেভ করুন। সব জনপ্রিয় মডেল নিচের লিস্টে রেডি করা আছে।
       </div>
-      <input type="password" id="apiKeyInput" class="modal-input" placeholder="AIza..." />
-      <input type="text" id="modelNameInput" class="modal-input" placeholder="মডেল (ডিফল্ট: gemini-2.5-flash)" />
+
+      <div class="field-label">১. AI প্রোভাইডার নির্বাচন করুন:</div>
+      <select id="providerSelect" class="modal-select" onchange="onProviderChange()">
+        <option value="groq">Groq (খুব দ্রুত — Llama / Qwen / Gemma)</option>
+        <option value="openrouter">OpenRouter (সব মডেল — Claude, DeepSeek, GPT, Gemini)</option>
+        <option value="openai">OpenAI (GPT-4o / GPT-4o-mini)</option>
+        <option value="gemini">Google Gemini (Gemini 2.5 / 2.0 / 1.5)</option>
+      </select>
+
+      <div class="field-label">২. মডেল বেছে নিন:</div>
+      <select id="modelSelect" class="modal-select" onchange="onModelSelectChange()"></select>
+      <input type="text" id="customModelInput" class="modal-input" placeholder="অথবা কাস্টম মডেল আইডি লিখুন..." />
+
+      <div class="field-label">৩. আপনার API Key বসান:</div>
+      <input type="password" id="apiKeyInput" class="modal-input" placeholder="এখানে API Key পেস্ট করুন..." />
+
       <div class="modal-actions">
         <button class="tool-btn" onclick="closeApiModal()">বন্ধ</button>
         <button class="tool-btn ai-btn" onclick="saveApiSettings()">সেভ করুন</button>
@@ -558,9 +577,37 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    const DB_NAME = 'BadshaDiaryHybridDB';
+    const DB_NAME = 'BadshaDiaryMultiAIDB';
     const STORE_NAME = 'scripts';
     const MAX_WORDS = 30000;
+
+    // Pre-configured models for every supported AI provider
+    const PROVIDER_MODELS = {
+      groq: [
+        { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B Versatile (সেরা বাংলা ও দ্রুত)' },
+        { id: 'qwen-qwq-32b', label: 'Qwen 32B (লজিক্যাল ফরম্যাটিং)' },
+        { id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B Instant (সুপার ফাস্ট)' },
+        { id: 'gemma2-9b-it', label: 'Gemma 2 9B' }
+      ],
+      openrouter: [
+        { id: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet (বাংলায় নিখুঁত)' },
+        { id: 'deepseek/deepseek-chat', label: 'DeepSeek V3 (সাশ্রয়ী ও শক্তিশালী)' },
+        { id: 'openai/gpt-4o-mini', label: 'GPT-4o Mini' },
+        { id: 'google/gemini-2.0-flash-001', label: 'Gemini 2.0 Flash (via OpenRouter)' },
+        { id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B (Free Tier)' }
+      ],
+      openai: [
+        { id: 'gpt-4o-mini', label: 'GPT-4o Mini (দ্রুত ও সাশ্রয়ী)' },
+        { id: 'gpt-4o', label: 'GPT-4o (হাই অ্যাকুরেসি)' },
+        { id: 'gpt-4.1-mini', label: 'GPT-4.1 Mini' }
+      ],
+      gemini: [
+        { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+        { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+        { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+        { id: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' }
+      ]
+    };
 
     let db = null;
     let notes = [];
@@ -570,12 +617,9 @@
     let undoStack = [];
     let isProcessingAI = false;
 
-    // ==================== INDEXEDDB + LOCALSTORAGE OFFLINE HOST ====================
+    // ==================== INIT & STORAGE ====================
     function initDB() {
-      const savedKey = localStorage.getItem('badsha_gemini_key') || '';
-      const savedModel = localStorage.getItem('badsha_gemini_model') || 'gemini-2.5-flash';
-      document.getElementById('apiKeyInput').value = savedKey;
-      document.getElementById('modelNameInput').value = savedModel;
+      loadApiSettingsToUI();
 
       return new Promise((resolve) => {
         const req = indexedDB.open(DB_NAME, 1);
@@ -590,7 +634,7 @@
           loadAllNotes().then(resolve);
         };
         req.onerror = () => {
-          const raw = localStorage.getItem('badsha_hybrid_notes_fallback');
+          const raw = localStorage.getItem('badsha_multiai_notes_fallback');
           notes = raw ? JSON.parse(raw) : [];
           renderNotesList();
           resolve();
@@ -617,7 +661,7 @@
         tx.objectStore(STORE_NAME).put(note);
       }
       try {
-        localStorage.setItem('badsha_hybrid_notes_fallback', JSON.stringify(notes));
+        localStorage.setItem('badsha_multiai_notes_fallback', JSON.stringify(notes));
       } catch (e) {}
     }
 
@@ -627,8 +671,68 @@
         tx.objectStore(STORE_NAME).delete(id);
       }
       try {
-        localStorage.setItem('badsha_hybrid_notes_fallback', JSON.stringify(notes));
+        localStorage.setItem('badsha_multiai_notes_fallback', JSON.stringify(notes));
       } catch (e) {}
+    }
+
+    // ==================== API SETTINGS UI ====================
+    function loadApiSettingsToUI() {
+      const provider = localStorage.getItem('badsha_ai_provider') || 'groq';
+      const savedModel = localStorage.getItem('badsha_ai_model') || PROVIDER_MODELS[provider][0].id;
+      const savedKey = localStorage.getItem('badsha_ai_key') || '';
+
+      document.getElementById('providerSelect').value = provider;
+      populateModelsForProvider(provider, savedModel);
+      document.getElementById('apiKeyInput').value = savedKey;
+    }
+
+    function populateModelsForProvider(provider, selectedModelId) {
+      const modelSelect = document.getElementById('modelSelect');
+      const list = PROVIDER_MODELS[provider] || [];
+      modelSelect.innerHTML = list
+        .map(m => `<option value="${m.id}">${m.label}</option>`)
+        .join('');
+
+      const found = list.some(m => m.id === selectedModelId);
+      if (found) {
+        modelSelect.value = selectedModelId;
+        document.getElementById('customModelInput').value = selectedModelId;
+      } else {
+        modelSelect.value = list[0]?.id || '';
+        document.getElementById('customModelInput').value = selectedModelId || list[0]?.id || '';
+      }
+    }
+
+    function onProviderChange() {
+      const provider = document.getElementById('providerSelect').value;
+      const defaultModel = PROVIDER_MODELS[provider][0].id;
+      populateModelsForProvider(provider, defaultModel);
+    }
+
+    function onModelSelectChange() {
+      document.getElementById('customModelInput').value = document.getElementById('modelSelect').value;
+    }
+
+    function openApiModal() {
+      loadApiSettingsToUI();
+      document.getElementById('apiModal').classList.add('active');
+    }
+
+    function closeApiModal() {
+      document.getElementById('apiModal').classList.remove('active');
+    }
+
+    function saveApiSettings() {
+      const provider = document.getElementById('providerSelect').value;
+      const model = (document.getElementById('customModelInput').value.trim() || document.getElementById('modelSelect').value);
+      const key = document.getElementById('apiKeyInput').value.trim();
+
+      localStorage.setItem('badsha_ai_provider', provider);
+      localStorage.setItem('badsha_ai_model', model);
+      localStorage.setItem('badsha_ai_key', key);
+
+      closeApiModal();
+      showToast(`${provider.toUpperCase()} (${model}) সেভ হয়েছে ✓`);
     }
 
     // ==================== COUNTERS & LIST ====================
@@ -790,7 +894,7 @@
       showToast('মুছে ফেলা হয়েছে');
     }
 
-    // ==================== ONLINE AI BRAIN + OFFLINE FALLBACK ====================
+    // ==================== MULTI-AI ENGINE (GROQ / OPENROUTER / OPENAI / GEMINI) ====================
     async function modifyWithAI() {
       if (isProcessingAI) return;
       const editor = document.getElementById('scriptEditor');
@@ -800,12 +904,19 @@
         return;
       }
 
-      const apiKey = (localStorage.getItem('badsha_gemini_key') || '').trim();
-      const model = (localStorage.getItem('badsha_gemini_model') || 'gemini-2.5-flash').trim();
+      const provider = localStorage.getItem('badsha_ai_provider') || 'groq';
+      const model = localStorage.getItem('badsha_ai_model') || PROVIDER_MODELS[provider][0].id;
+      const apiKey = (localStorage.getItem('badsha_ai_key') || '').trim();
       const charList = (document.getElementById('customCharsInput').value || '').trim();
 
-      if (!navigator.onLine || !apiKey) {
-        showToast('ইন্টারনেট বা API Key নেই — অফলাইন মডিফাই চলছে');
+      if (!apiKey) {
+        openApiModal();
+        showToast('আগে আপনার API Key সেভ করুন');
+        return;
+      }
+
+      if (!navigator.onLine) {
+        showToast('ইন্টারনেট নেই — অফলাইন মডিফাই চলছে');
         modifyOfflineFallback();
         return;
       }
@@ -813,32 +924,29 @@
       isProcessingAI = true;
       const aiBtn = document.getElementById('aiModifyBtn');
       aiBtn.disabled = true;
-      aiBtn.textContent = '⏳ AI কাজ করছে...';
-      document.getElementById('saveStatus').textContent = 'অনলাইন AI ব্রেন দিয়ে প্রসেস হচ্ছে...';
+      aiBtn.textContent = '⏳ AI সংযোগ হচ্ছে...';
+      document.getElementById('saveStatus').textContent = `${provider.toUpperCase()} (${model}) কাজ করছে...`;
 
       undoStack.push(fullText);
 
       try {
-        // Split large scripts into chunks (~1,800 words each) so large scripts never time out
-        const chunks = splitTextIntoChunks(fullText, 1800);
+        const chunks = splitTextIntoChunks(fullText, 1000);
         const processedChunks = [];
 
         for (let idx = 0; idx < chunks.length; idx++) {
           aiBtn.textContent = `⏳ AI (${idx + 1}/${chunks.length})`;
-          const resText = await callGeminiChunk(chunks[idx], apiKey, model, charList);
-          processedChunks.push(resText.trim());
+          const out = await callSelectedProvider(chunks[idx], provider, model, apiKey, charList);
+          processedChunks.push(out.trim());
         }
 
         editor.value = processedChunks.join('\n\n');
         handleEditorInput();
-        document.getElementById('saveStatus').textContent = 'AI মডিফাই সম্পন্ন ও অফলাইনে সেভ ✓';
-        showToast('AI স্ক্রিপ্ট মডিফাই সম্পন্ন হয়েছে ✓');
+        document.getElementById('saveStatus').textContent = `${provider.toUpperCase()} মডিফাই সম্পন্ন ও সেভ ✓`;
+        showToast('AI স্ক্রিপ্ট মডিফাই সম্পন্ন ✓');
       } catch (err) {
-        // Restore original before fallback so offline engine starts cleanly
         editor.value = undoStack.pop();
-        document.getElementById('saveStatus').textContent = 'AI ব্যর্থ — অফলাইন ফলব্যাক সক্রিয়';
-        showToast('AI সার্ভারে সমস্যা — অফলাইন মডিফাই চলছে');
-        modifyOfflineFallback();
+        document.getElementById('saveStatus').textContent = 'AI এরর: ' + err.message;
+        alert(`অনলাইন AI কাজ করেনি (${provider.toUpperCase()}):\n${err.message}\n\nআপনি 🔑 API থেকে অন্য মডেল বেছে নিতে পারেন অথবা ⚡ অফলাইন মডিফাই ব্যবহার করতে পারেন।`);
       } finally {
         isProcessingAI = false;
         aiBtn.disabled = false;
@@ -867,36 +975,75 @@
       return chunks;
     }
 
-    async function callGeminiChunk(chunkText, apiKey, model, charList) {
-      const prompt = `তুমি একজন বাংলা অডিও স্ক্রিপ্ট ফরম্যাটার। নিচের গল্প/স্ক্রিপ্ট অংশটিকে ঠিক এই নিয়মে সাজাও:
-১. বর্ণনা/ন্যারেশনের শুরুতে "কথকঃ/ " দাও।
-২. চরিত্রের সংলাপের শুরুতে "চরিত্রের_নাম:/ " (বা চরিত্র অস্পষ্ট হলে "সংলাপ:/ ") দাও।
-৩. এক লাইনে একাধিক সংলাপ বা শেষে বর্ণনা থাকলে আলাদা ব্লকে ভাগ করো।
-৪. মূল গল্পের ঘটনা, ভাব ও সংলাপের অর্থ বদলাবে না; কেবল স্পষ্ট টাইপিং/বানান ভুল ঠিক করতে পারো।
-৫. কোনো অতিরিক্ত ভূমিকা বা ব্যাখ্যা লিখবে না—শুধু ফরম্যাট করা স্ক্রিপ্ট দেবে।
-${charList ? `চিহ্নিত চরিত্রসমূহ: ${charList}` : ''}
+    async function callSelectedProvider(chunkText, provider, model, apiKey, charList) {
+      const systemInstruction = `তুমি একজন পেশাদার বাংলা অডিও ড্রামা স্ক্রিপ্ট ফরম্যাটার। নিচের নিয়ম মেনে স্ক্রিপ্ট সাজাও:
+১. বর্ণনা বা ন্যারেশনের শুরুতে "কথকঃ/ " বসাও।
+২. চরিত্রের সংলাপের শুরুতে "চরিত্রের_নাম:/ " (নাম বোঝা না গেলে "সংলাপ:/ ") বসাও।
+৩. এক লাইনের ভেতরে ">>" বা একাধিক সংলাপ ও বর্ণনা মিশে থাকলে আলাদা আলাদা ব্লকে ভাগ করো।
+৪. মূল গল্পের ঘটনা, ভাব ও সংলাপ বদলাবে না; শুধু স্পষ্ট বানান ও টাইপিং ভুল ঠিক করবে।
+৫. কোনো ভূমিকা বা অতিরিক্ত কথা লিখবে না—সরাসরি ফরম্যাট করা স্ক্রিপ্ট দেবে।`;
 
-টেক্সট:
-${chunkText}`;
+      const userPrompt = `${charList ? `গল্পের চরিত্রসমূহ: ${charList}\n\n` : ''}নিচের অংশটি ফরম্যাট করো:\n\n${chunkText}`;
 
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
-      const response = await fetch(endpoint, {
+      // OpenAI-compatible providers: Groq, OpenRouter, OpenAI
+      if (provider === 'groq' || provider === 'openrouter' || provider === 'openai') {
+        const endpoints = {
+          groq: 'https://api.groq.com/openai/v1/chat/completions',
+          openrouter: 'https://openrouter.ai/api/v1/chat/completions',
+          openai: 'https://api.openai.com/v1/chat/completions'
+        };
+
+        const headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        };
+        if (provider === 'openrouter') {
+          headers['HTTP-Referer'] = window.location.origin;
+          headers['X-Title'] = 'Badsha Diary';
+        }
+
+        const res = await fetch(endpoints[provider], {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            model,
+            temperature: 0.2,
+            messages: [
+              { role: 'system', content: systemInstruction },
+              { role: 'user', content: userPrompt }
+            ]
+          })
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data?.error?.message || `HTTP ${res.status}`);
+        }
+        const text = data?.choices?.[0]?.message?.content;
+        if (!text) throw new Error('সার্ভার থেকে ফাঁকা উত্তর এসেছে');
+        return text;
+      }
+
+      // Google Gemini provider
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const res = await fetch(geminiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
+          contents: [{ parts: [{ text: `${systemInstruction}\n\n${userPrompt}` }] }]
         })
       });
 
-      if (!response.ok) {
-        throw new Error('API Error ' + response.status);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error?.message || `HTTP ${res.status}`);
       }
-      const data = await response.json();
-      const out = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!out) throw new Error('Empty AI response');
-      return out;
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) throw new Error('Gemini থেকে ফাঁকা উত্তর এসেছে');
+      return text;
     }
 
+    // ==================== OFFLINE FALLBACK & SPELLCHECK ====================
     function modifyOfflineFallback() {
       const editor = document.getElementById('scriptEditor');
       const rawText = editor.value;
@@ -968,22 +1115,6 @@ ${chunkText}`;
       document.getElementById('scriptEditor').value = undoStack.pop();
       handleEditorInput();
       showToast('পূর্বের লেখায় ফেরা হয়েছে');
-    }
-
-    // ==================== MODALS & EXPORT ====================
-    function openApiModal() {
-      document.getElementById('apiModal').classList.add('active');
-    }
-    function closeApiModal() {
-      document.getElementById('apiModal').classList.remove('active');
-    }
-    function saveApiSettings() {
-      const key = document.getElementById('apiKeyInput').value.trim();
-      const model = (document.getElementById('modelNameInput').value.trim() || 'gemini-2.5-flash');
-      localStorage.setItem('badsha_gemini_key', key);
-      localStorage.setItem('badsha_gemini_model', model);
-      closeApiModal();
-      showToast('API সেটিংস সংরক্ষিত হয়েছে ✓');
     }
 
     function openCharModal() {
