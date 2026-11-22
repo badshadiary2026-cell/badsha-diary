@@ -801,130 +801,14 @@
       }
 
       const apiKey = (localStorage.getItem('badsha_gemini_key') || '').trim();
-      const primaryModel = (localStorage.getItem('badsha_gemini_model') || 'gemini-2.5-flash').trim();
+      const model = (localStorage.getItem('badsha_gemini_model') || 'gemini-2.5-flash').trim();
       const charList = (document.getElementById('customCharsInput').value || '').trim();
 
-      if (!apiKey) {
-        openApiModal();
-        showToast('আগে 🔑 API বাটনে আপনার API Key সেভ করুন');
-        return;
-      }
-
-      if (!navigator.onLine) {
-        showToast('ইন্টারনেট সংযোগ নেই — অফলাইন মডিফাই চলছে');
+      if (!navigator.onLine || !apiKey) {
+        showToast('ইন্টারনেট বা API Key নেই — অফলাইন মডিফাই চলছে');
         modifyOfflineFallback();
         return;
       }
-
-      isProcessingAI = true;
-      const aiBtn = document.getElementById('aiModifyBtn');
-      aiBtn.disabled = true;
-      aiBtn.textContent = '⏳ AI সংযোগ হচ্ছে...';
-      document.getElementById('saveStatus').textContent = 'অনলাইন AI সার্ভারের সাথে যুক্ত হচ্ছে...';
-
-      undoStack.push(fullText);
-
-      // Try user's model first, then reliable fallback models automatically
-      const modelsToTry = Array.from(new Set([primaryModel, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']));
-
-      try {
-        const chunks = splitTextIntoChunks(fullText, 1000);
-        const processedChunks = [];
-
-        for (let idx = 0; idx < chunks.length; idx++) {
-          aiBtn.textContent = `⏳ AI (${idx + 1}/${chunks.length})`;
-          let chunkSuccess = false;
-          let lastError = '';
-
-          for (const modelName of modelsToTry) {
-            try {
-              const resText = await callGeminiChunk(chunks[idx], apiKey, modelName, charList);
-              processedChunks.push(resText.trim());
-              chunkSuccess = true;
-              break;
-            } catch (e) {
-              lastError = e.message;
-              // If key itself is invalid, stop trying other models
-              if (lastError.includes('400') || lastError.includes('API_KEY_INVALID')) {
-                throw new Error('আপনার API Key-টি সঠিক নয়। 🔑 API থেকে যাচাই করুন।');
-              }
-            }
-          }
-
-          if (!chunkSuccess) {
-            throw new Error(lastError || 'AI সার্ভার থেকে উত্তর পাওয়া যায়নি');
-          }
-        }
-
-        editor.value = processedChunks.join('\n\n');
-        handleEditorInput();
-        document.getElementById('saveStatus').textContent = 'AI মডিফাই সম্পন্ন ও সেভ ✓';
-        showToast('AI স্ক্রিপ্ট মডিফাই সম্পন্ন হয়েছে ✓');
-      } catch (err) {
-        editor.value = undoStack.pop();
-        document.getElementById('saveStatus').textContent = 'AI এরর: ' + err.message;
-        alert('অনলাইন AI কাজ করেনি:\n' + err.message + '\n\nএখন অফলাইন মডিফাই ব্যবহার করতে পারেন।');
-      } finally {
-        isProcessingAI = false;
-        aiBtn.disabled = false;
-        aiBtn.textContent = '🤖 AI স্ক্রিপ্ট মডিফাই';
-      }
-    }
-
-    function splitTextIntoChunks(text, targetWords) {
-      const paragraphs = text.split(/\n+/);
-      const chunks = [];
-      let current = [];
-      let words = 0;
-
-      for (const p of paragraphs) {
-        const w = countWords(p);
-        if (words + w > targetWords && current.length > 0) {
-          chunks.push(current.join('\n\n'));
-          current = [p];
-          words = w;
-        } else {
-          current.push(p);
-          words += w;
-        }
-      }
-      if (current.length > 0) chunks.push(current.join('\n\n'));
-      return chunks;
-    }
-
-    async function callGeminiChunk(chunkText, apiKey, model, charList) {
-      const prompt = `তুমি একজন বাংলা অডিও স্ক্রিপ্ট ফরম্যাটার। নিচের গল্প/স্ক্রিপ্ট অংশটিকে ঠিক এই নিয়মে সাজাও:
-১. বর্ণনা/ন্যারেশনের শুরুতে "কথকঃ/ " দাও।
-২. চরিত্রের সংলাপের শুরুতে "চরিত্রের_নাম:/ " (বা চরিত্র অস্পষ্ট হলে "সংলাপ:/ ") দাও।
-৩. এক লাইনে একাধিক সংলাপ বা শেষে বর্ণনা থাকলে আলাদা ব্লকে ভাগ করো।
-৪. মূল গল্পের ঘটনা, ভাব ও সংলাপের অর্থ বদলাবে না; কেবল স্পষ্ট টাইপিং/বানান ভুল ঠিক করতে পারো।
-৫. কোনো অতিরিক্ত ভূমিকা বা ব্যাখ্যা লিখবে না—শুধু ফরম্যাট করা স্ক্রিপ্ট দেবে।
-${charList ? `চিহ্নিত চরিত্রসমূহ: ${charList}` : ''}
-
-টেক্সট:
-${chunkText}`;
-
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        })
-      });
-
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        const serverMsg = data?.error?.message || `HTTP ${response.status}`;
-        throw new Error(`${model} -> ${serverMsg}`);
-      }
-
-      const out = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!out) {
-        throw new Error('AI থেকে ফাঁকা উত্তর এসেছে (Safety/Block)');
-      }
-      return out;
-    }
 
       isProcessingAI = true;
       const aiBtn = document.getElementById('aiModifyBtn');
